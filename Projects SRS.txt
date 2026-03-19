@@ -1,0 +1,217 @@
+Project Overview
+Modern software services must be available, responsive, secure, and cost-effective even
+under failures, load spikes, partial outages, and operational uncertainty. Reliability is not a
+single mechanism, but an engineering trade-off involving architecture, observability, security
+controls, automation, and cost.
+At the same time, Agentic AI is increasingly used to support system operations. Agents can
+assist with monitoring, diagnosis, incident triage, and controlled remediation. However, they
+also introduce risks, including unsafe actions, hallucinations, latency, limited accountability,
+and excessive inference cost.
+The goal of this project is to design and implement a distributed service in a high-stakes
+domain, together with an agentic operations layer based on MCP (Model Context Protocol).
+The project must demonstrate sound engineering choices in scalability, reliability,
+observability, and safe operational automation.
+Project Goals
+Each team must design, implement, and demonstrate:
+•
+•
+•
+
+a scalable and reliable distributed service
+an agentic operational layer, preferably based on MCP
+a clear operational safety policy for agent behavior
+
+Service Definition
+Each team may choose a service in one of the following domains:
+• Finance
+• Healthcare
+• Transportation
+• Cybersecurity / SOC Automation
+• Industrial / IoT Monitoring
+• E-commerce Critical Services
+Each team must study a specific sector in one of these fields, and propose the details of this
+service. The proposal must clearly define:
+• the service being built
+• the target users or stakeholders
+• the main events or requests handled by the system (workload)
+• the main possible failure scenarios
+• why reliability is important in that context
+1
+
+Example project themes include:
+• fraud alert triage and escalation platform
+• hospital lab-result escalation and notification service
+• flight disruption tracking and passenger re-routing support service
+• SOC alert deduplication and analyst escalation service
+• industrial anomaly detection and alert-routing service
+• priority order failure-handling service for e-commerce operations
+Technical Requirements
+The project must implement a distributed system composed of multiple interacting
+components, deployed in containerized form. The architecture must be clearly documented
+and should reflect the functional and non-functional requirements of the chosen service.
+The system must include technically justified mechanisms for reliability and scalability.
+Depending on the design, these may include retries, timeouts, rate limiting, backoff policies,
+replication, failover, graceful degradation, or load management strategies. Teams are not
+required to implement every possible mechanism, but the selected ones must be motivated
+clearly. The system must also expose operational visibility through metrics, logs, and
+dashboards or equivalent monitoring views.
+Each team must demonstrate how the system behaves under controlled failure conditions.
+Examples include service crashes, dependency unavailability, malformed requests, queue
+congestion, or network degradation. The goal is to show detection, tolerance, mitigation, or
+recovery.
+
+Agentic Operations Requirements
+The system must include at least two distinct agent responsibilities. These may be
+implemented as separate agents or as clearly separated roles within one orchestrated
+architecture. Examples include monitoring interpretation, incident triage, remediation
+proposal, bounded remediation, rollback recommendation, cost analysis, policy validation,
+or operational summarization for human operators.
+Teams must justify why the selected tasks benefit from an agentic approach rather than
+simple deterministic automation. They must also explicitly distinguish between deterministic
+automation, agentic decision-making, and human-in-the-loop actions. This distinction is a
+central part of the evaluation.
+All operational capabilities exposed to agents must be provided through MCP servers. Each
+project must include at least two MCP-exposed capability groups, such as telemetry and
+observability, remediation and deployment, cost and policy analysis, or configuration
+inspection. The MCP design must be documented clearly.
+2
+
+Agents must operate under explicit guardrails. Each project must address least privilege,
+action boundaries, idempotency where applicable, auditability, escalation for high-risk
+actions, rollback or safe fallback when confidence is low, and protection against loops or
+excessive token consumption. Teams must define which actions are fully automated,
+advisory only, or require human approval.
+Operational Safety Policy
+Each project must include an explicit operational safety policy.
+At minimum, the policy must ensure that:
+•
+•
+•
+•
+•
+
+destructive or high-impact actions require human approval
+all high-impact actions are logged
+risky operations are bounded by policy
+ambiguous situations result in escalation or rollback, not speculative actions
+unsafe or hallucinated commands cannot be executed directly
+
+During the demo, the professor may also act as a malicious or confused operator in order to
+evaluate the robustness of the guardrails.
+–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
+Reliability, Cost, and ROI analysis
+Each team must include a concise analysis covering:
+•
+•
+•
+•
+•
+•
+•
+
+Service Level Objectives (SLOs)
+estimated cost of one hour of downtime
+one justified resilience or redundancy investment
+estimated monthly operational cost
+estimated agent-related cost ceiling
+one trade-off between cost and reliability
+one trade-off between automation and safety
+
+In addition, each team must include a short Return on Agent (ROA) assessment. This should
+explain whether the inclusion of agentic capabilities provides measurable operational value
+relative to its cost, complexity, and risk.
+The ROI discussion should address:
+•
+•
+•
+
+what measurable benefit it provides to the customers
+how the return can be obtained from the provided service(s)
+which CAPEX and OPEX can be estimated for the services (e.g., infrastructure, people,
+marketing)
+3
+
+The purpose of this section is to show that engineering decisions are informed by both
+technical and economic reasoning, and that agentic functionality is used where it adds real
+value rather than novelty.
+–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
+Evaluation Criteria
+Projects will be evaluated not only on feature completeness, but on how they behave under
+stress, uncertainty, and operational constraints. During the demo, the system can be
+subjected to a live stress scenario in which parts of the virtual infrastructure are deliberately
+disrupted. This is the professor’s stress test. The purpose is to assess whether the proposed
+architecture, operational logic, and safety mechanisms remain effective when conditions are
+degraded. Evaluation will consider, at minimum, the following aspects:
+•
+•
+•
+
+Graceful degradation: does the system remain at least partially functional if a critical
+component, such as the primary database, becomes unavailable?
+Budget compliance: does the design remain compatible with the assigned budget
+constraints, including the stated monthly cost limit?
+Recovery Time Objective (RTO): how quickly can the system detect, react to, and
+recover from a failure scenario?
+
+Agent Guardrails and Operational Constraints
+Each project must define explicit constraints on how agents are allowed to observe, reason
+about, and act on the system. These constraints are part of the evaluation and must be
+reflected in both the architecture and the demo.
+First, the Principle of Least Privilege must be enforced. The agent is an operational assistant,
+not an unrestricted controller of the system. It must not be allowed to delete, drop, terminate,
+or irreversibly modify primary data stores or production environments without a clearly
+defined human approval step. The agent reasoning component should run in an isolated
+environment and should consume operational telemetry in read-only form whenever
+possible. Any write-capable action should pass through explicitly controlled interfaces, such
+as an approved API layer, gateway, or bounded execution service, with appropriate rate limits
+and policy checks.
+Second, the project must include economic guardrails. If an agent enters an extended
+reasoning loop without producing a resolution, the system should detect this and escalate
+rather than continuing indefinitely. Teams should define a concrete threshold, expressed in
+cost, number of steps, or equivalent bounded resource consumption, beyond which the
+agent must stop and defer to a human operator. Similarly, if the agent is allowed to trigger
+infrastructure scaling or remediation actions with economic impact, those actions must
+remain within predefined limits. Scaling decisions that exceed a justified cost envelope
+4
+
+should require explicit approval or a documented justification visible in the operational
+dashboard.
+The project must include hallucination and validation controls. Because reliability depends
+on verifiable behavior rather than plausible-looking outputs, high-impact agent actions must
+be subject to validation. Before executing sensitive commands or remediation steps, the
+agent should verify them through an appropriate mechanism. Depending on the project
+design, this may include testing in a staging environment, simulation against a mock system,
+dry-run execution, policy validation, or consistency checks against telemetry. If the agent
+relies on external tools to derive metrics, health status, or remediation decisions, those steps
+must remain auditable. The project must make it possible, during or after an incident, to
+inspect how a conclusion was reached and which tool outputs or intermediate computations
+supported it.
+Finally, incident response should remain ROI-driven and safety-oriented. Agent behavior
+must be justified not only by technical feasibility, but also by operational value. When
+evaluating remediation or optimization options, the agent should take into account service
+objectives and economic impact. A costly intervention that yields only marginal reliability
+improvement should not be selected automatically without justification. In ambiguous
+situations, the default policy must favor bounded and reversible behavior. If the agent cannot
+determine the root cause with sufficient confidence, it should prefer escalation, rollback, or
+return to a known good state rather than attempting speculative remediation.
+Deliverables
+Each team must submit:
+• source code and deployment material, including the service implementation, agentic
+layer, MCP servers, and supporting configuration or deployment files
+• a technical report describing the selected service, architecture, reliability and
+scalability mechanisms, observability strategy, agent roles, MCP design, safety policy,
+DevSecOps choices, failure experiments, and cost analysis
+What we expect
+We are not looking for the highest number of features or for a generic LLM wrapper. We are
+looking for a coherent, well-justified system that demonstrates engineering maturity, sound
+trade-off analysis, and safe use of agentic capabilities in a reliability-critical context.
+Final Note
+Real systems fail. Good engineers do not build features; they build systems that continue to
+behave acceptably when things go wrong.
+Groups submission link: https://forms.gle/D3yBoZzc5hYhGx2a9
+
+5
+
+

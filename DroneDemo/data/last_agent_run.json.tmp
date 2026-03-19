@@ -1,0 +1,1850 @@
+{
+  "final_decision_text": "Based on the provided JSON data from the tool, here's a summary of the key points:\n\n1. **Total Orders**: There are 200 open orders.\n2. **Available Drones**: There are 6 available drones for delivery.\n\n### Approvals Needed:\n- **Checkpoint Drop**:\n  - For order `ORD-1773849357-151` at checkpoint `CP-6`: Reason is \"Full delivery exceeds battery budget with reserve\".\n  - For order `ORD-1773849407-214` at checkpoint `CP-6`: Same reason as above.\n  - For order `ORD-1773849623-7` at checkpoint `CP-6`: Same reason as above.\n\n- **Abort Order**:\n  - For order `ORD-1773849237-2`: Reason is \"No safe assignment candidate for non-critical order\".\n  - For order `ORD-1773849294-73`: Same reason as above.\n  - For order `ORD-1773849330-117`: Same reason as above.\n  - For order `ORD-1773849361-156`: Same reason as above.\n  - For order `ORD-1773849363-159`: Same reason as above.\n  - For order `ORD-1773849376-175`: Same reason as above.\n  - For order `ORD-1773849401-206`: Same reason as above.\n  - For order `ORD-1773849624-8`: Same reason as above.\n  - For order `ORD-1773849639-26`: Same reason as above.\n  - For order `ORD-1773849644-33`: Same reason as above.\n\n### Recommendations:\n1. **Review Checkpoint Drop Approvals**:\n   - Ensure that the drone's battery budget is sufficient for all deliveries, especially considering the checkpoints involved.\n   \n2. **Evaluate Drone Assignment**:\n   - Since multiple orders are being aborted due to \"No safe assignment candidate,\" consider re-evaluating the drone assignment strategy or adjusting the delivery routes to ensure more feasible assignments.\n\n3. **Battery Management**:\n   - Ensure that the battery management system is accurately estimating the required energy for each delivery, especially when considering checkpoints and reserve capacity.\n\n4. **Order Prioritization**:\n   - If possible, prioritize critical orders over non-critical ones to avoid aborting important deliveries.\n\n5. **Route Optimization**:\n   - Consider optimizing routes to minimize the number of checkpoints and reduce overall battery usage.\n\nWould you like me to provide more specific recommendations or further analysis based on this data?",
+  "tool_trace": [
+    {
+      "tool": "get_fleet_snapshot",
+      "args": {},
+      "result": {
+        "warehouse": {
+          "lon": 0.0,
+          "lat": 0.0
+        },
+        "battery_per_meter": 0.003536,
+        "drones": [
+          {
+            "timestamp": 1773849757,
+            "drone_id": "D1",
+            "status": "flying",
+            "battery_pct": 34.01,
+            "wear_pct": 86.3,
+            "lon": -1771.12,
+            "lat": -574.1,
+            "wind": 11.79,
+            "assigned_order_id": null
+          },
+          {
+            "timestamp": 1773849757,
+            "drone_id": "D2",
+            "status": "landed",
+            "battery_pct": 40.21,
+            "wear_pct": 87.59,
+            "lon": 239.96,
+            "lat": -205.88,
+            "wind": 7.6,
+            "assigned_order_id": null
+          },
+          {
+            "timestamp": 1773849757,
+            "drone_id": "D3",
+            "status": "routing",
+            "battery_pct": 30.27,
+            "wear_pct": 86.65,
+            "lon": -1279.27,
+            "lat": 521.87,
+            "wind": 13.0,
+            "assigned_order_id": null
+          },
+          {
+            "timestamp": 1773849757,
+            "drone_id": "D4",
+            "status": "flying",
+            "battery_pct": 30.43,
+            "wear_pct": 86.19,
+            "lon": -222.28,
+            "lat": 166.93,
+            "wind": 6.5,
+            "assigned_order_id": null
+          },
+          {
+            "timestamp": 1773849710,
+            "drone_id": "D5",
+            "status": "landed",
+            "battery_pct": 100.0,
+            "wear_pct": 100.0,
+            "lon": 0.0,
+            "lat": 0.0,
+            "wind": 0.0,
+            "assigned_order_id": null
+          },
+          {
+            "timestamp": 1773849731,
+            "drone_id": "D6",
+            "status": "landed",
+            "battery_pct": 100.0,
+            "wear_pct": 100.0,
+            "lon": 0.0,
+            "lat": 0.0,
+            "wind": 0.0,
+            "assigned_order_id": null
+          }
+        ],
+        "summary": {
+          "total": 6,
+          "ready": 3,
+          "low_battery": 0,
+          "low_wear": 0,
+          "avg_battery": 55.82,
+          "avg_wear": 91.12
+        }
+      }
+    },
+    {
+      "tool": "get_open_orders",
+      "args": {
+        "limit": 5
+      },
+      "result": {
+        "total_open": 399,
+        "orders": [
+          {
+            "timestamp": 1773849245,
+            "created_at": 1773849245,
+            "order_id": "ORD-1773849245-12",
+            "product": 4,
+            "dest_lon": 1676.98,
+            "dest_lat": -3008.07,
+            "urgency": "prioritario",
+            "status": "assigned",
+            "assigned_drone_id": "D1",
+            "updated_at": 1773849307
+          },
+          {
+            "timestamp": 1773849247,
+            "created_at": 1773849247,
+            "order_id": "ORD-1773849247-14",
+            "product": 2,
+            "dest_lon": 8543.94,
+            "dest_lat": -7397.38,
+            "urgency": "prioritario",
+            "status": "assigned",
+            "assigned_drone_id": "D2",
+            "updated_at": 1773849608
+          },
+          {
+            "timestamp": 1773849249,
+            "created_at": 1773849249,
+            "order_id": "ORD-1773849249-16",
+            "product": 2,
+            "dest_lon": 7844.78,
+            "dest_lat": 8299.98,
+            "urgency": "prioritario",
+            "status": "queued",
+            "assigned_drone_id": null
+          },
+          {
+            "timestamp": 1773849253,
+            "created_at": 1773849253,
+            "order_id": "ORD-1773849253-22",
+            "product": 1,
+            "dest_lon": -8461.92,
+            "dest_lat": 5904.86,
+            "urgency": "prioritario",
+            "status": "queued",
+            "assigned_drone_id": null
+          },
+          {
+            "timestamp": 1773849254,
+            "created_at": 1773849254,
+            "order_id": "ORD-1773849254-23",
+            "product": 4,
+            "dest_lon": -4548.33,
+            "dest_lat": 3565.57,
+            "urgency": "prioritario",
+            "status": "queued",
+            "assigned_drone_id": null
+          }
+        ]
+      }
+    },
+    {
+      "tool": "assign_order",
+      "args": {
+        "drone_id": "D3",
+        "order_id": "ORD-1773849249-16"
+      },
+      "result": {
+        "error": "Drone D3 cannot take order: drone_not_idle"
+      }
+    },
+    {
+      "tool": "assign_order",
+      "args": {
+        "drone_id": "D4",
+        "order_id": "ORD-1773849253-22"
+      },
+      "result": {
+        "error": "Drone D4 cannot take order: battery_too_low"
+      }
+    },
+    {
+      "tool": "plan_dispatch",
+      "args": {},
+      "result": {
+        "plan": [
+          {
+            "order_id": "ORD-1773849245-12",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849247-14",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849249-16",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849253-22",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849254-23",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849257-26",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849257-27",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849258-28",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849267-39",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849268-40",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849282-58",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849285-61",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849294-72",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849296-75",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849298-77",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849303-84",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849304-85",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849310-93",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849314-97",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849316-100",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849317-101",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849318-102",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849322-108",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849330-118",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849338-127",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849338-128",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849343-134",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849344-135",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849348-140",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849350-143",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849356-150",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849362-157",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849362-158",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849373-171",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849378-178",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849386-188",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849387-189",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849391-194",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849398-202",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849409-216",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849590-1",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849618-0",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849631-17",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849637-24",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849640-28",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849641-29",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849643-32",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849645-34",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849648-38",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849651-42",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849655-46",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849656-48",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849657-49",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849665-59",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849666-60",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849667-61",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849676-73",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849677-74",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849679-76",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849679-77",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849683-81",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849683-82",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849687-87",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849691-92",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849707-112",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849715-121",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849715-122",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849726-135",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849727-137",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849730-140",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849732-143",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849735-147",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849741-154",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849747-161",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849755-171",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849755-172",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849759-177",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849761-179",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849765-184",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849774-195",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849778-200",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849782-205",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849783-207",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849784-208",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849785-209",
+            "urgency": "prioritario",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849237-1",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849238-3",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849239-4",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849240-5",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849242-8",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849244-10",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849248-15",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849252-20",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849253-21",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849259-29",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849260-30",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849262-33",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849263-34",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849265-36",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849266-37",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849270-42",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849270-43",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849272-45",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849275-49",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849276-50",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849277-51",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849278-52",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849278-53",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849280-55",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849281-56",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849282-57",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849286-62",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849291-69",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849292-70",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849297-76",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849298-78",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849299-79",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849300-80",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849302-82",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849308-90",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849310-92",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849311-94",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849312-95",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849313-96",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849314-98",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849318-103",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849320-105",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849321-106",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849322-107",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849323-109",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849325-111",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849326-113",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849327-114",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849329-116",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849331-119",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849332-120",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849333-121",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849334-122",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849334-123",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849335-124",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849337-126",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849340-130",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849341-131",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849346-137",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849346-138",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849350-142",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849351-144",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849360-155",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849366-162",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849366-163",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849367-164",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849369-166",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849371-169",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849374-172",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849375-174",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849378-177",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849380-180",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849381-181",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849382-182",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849382-183",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849383-184",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849384-185",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849388-190",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849389-191",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849390-193",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849393-196",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849395-199",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849398-203",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849399-204",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849402-207",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849402-208",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849410-218",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849590-0",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849591-2",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849620-3",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849621-4",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849622-5",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849625-9",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849626-10",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849627-11",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849629-14",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849630-15",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849631-16",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849635-21",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849635-22",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          },
+          {
+            "order_id": "ORD-1773849643-31",
+            "urgency": "normale",
+            "recommended_action": "assign_order",
+            "drone_id": "D5"
+          }
+        ],
+        "approvals_needed": [
+          {
+            "kind": "checkpoint_drop",
+            "payload": {
+              "order_id": "ORD-1773849357-151",
+              "checkpoint": {
+                "checkpoint_id": "CP-6",
+                "lon": 3000.0,
+                "lat": -5196.15
+              }
+            },
+            "reason": "Full delivery exceeds battery budget with reserve"
+          },
+          {
+            "kind": "checkpoint_drop",
+            "payload": {
+              "order_id": "ORD-1773849407-214",
+              "checkpoint": {
+                "checkpoint_id": "CP-6",
+                "lon": 3000.0,
+                "lat": -5196.15
+              }
+            },
+            "reason": "Full delivery exceeds battery budget with reserve"
+          },
+          {
+            "kind": "checkpoint_drop",
+            "payload": {
+              "order_id": "ORD-1773849623-7",
+              "checkpoint": {
+                "checkpoint_id": "CP-6",
+                "lon": 3000.0,
+                "lat": -5196.15
+              }
+            },
+            "reason": "Full delivery exceeds battery budget with reserve"
+          },
+          {
+            "kind": "checkpoint_drop",
+            "payload": {
+              "order_id": "ORD-1773849633-19",
+              "checkpoint": {
+                "checkpoint_id": "CP-5",
+                "lon": -3000.0,
+                "lat": -5196.15
+              }
+            },
+            "reason": "Full delivery exceeds battery budget with reserve"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849237-2"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849294-73"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849330-117"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849361-156"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849363-159"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849376-175"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849401-206"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849624-8"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849639-26"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          },
+          {
+            "kind": "abort_order",
+            "payload": {
+              "order_id": "ORD-1773849644-33"
+            },
+            "reason": "No safe assignment candidate for non-critical order"
+          }
+        ],
+        "open_orders": 200,
+        "available_drones": 6
+      }
+    }
+  ],
+  "fleet": {
+    "warehouse": {
+      "lon": 0.0,
+      "lat": 0.0
+    },
+    "battery_per_meter": 0.003536,
+    "drones": [
+      {
+        "timestamp": 1773849793,
+        "drone_id": "D1",
+        "status": "returning",
+        "battery_pct": 13.03,
+        "wear_pct": 82.43,
+        "lon": 9.97,
+        "lat": 199.63,
+        "wind": 22.33,
+        "assigned_order_id": null
+      },
+      {
+        "timestamp": 1773849793,
+        "drone_id": "D2",
+        "status": "landed",
+        "battery_pct": 22.4,
+        "wear_pct": 83.93,
+        "lon": 666.29,
+        "lat": 622.32,
+        "wind": 19.14,
+        "assigned_order_id": null
+      },
+      {
+        "timestamp": 1773849793,
+        "drone_id": "D3",
+        "status": "landed",
+        "battery_pct": 11.73,
+        "wear_pct": 83.23,
+        "lon": 0.0,
+        "lat": 0.0,
+        "wind": 9.27,
+        "assigned_order_id": null
+      },
+      {
+        "timestamp": 1773849793,
+        "drone_id": "D4",
+        "status": "landed",
+        "battery_pct": 16.05,
+        "wear_pct": 83.38,
+        "lon": 0.0,
+        "lat": 0.0,
+        "wind": 11.79,
+        "assigned_order_id": null
+      },
+      {
+        "timestamp": 1773849710,
+        "drone_id": "D5",
+        "status": "landed",
+        "battery_pct": 100.0,
+        "wear_pct": 100.0,
+        "lon": 0.0,
+        "lat": 0.0,
+        "wind": 0.0,
+        "assigned_order_id": null
+      },
+      {
+        "timestamp": 1773849731,
+        "drone_id": "D6",
+        "status": "landed",
+        "battery_pct": 100.0,
+        "wear_pct": 100.0,
+        "lon": 0.0,
+        "lat": 0.0,
+        "wind": 0.0,
+        "assigned_order_id": null
+      }
+    ],
+    "summary": {
+      "total": 6,
+      "ready": 2,
+      "low_battery": 4,
+      "low_wear": 0,
+      "avg_battery": 43.87,
+      "avg_wear": 88.83
+    }
+  },
+  "orders": {
+    "total_open": 444,
+    "orders": [
+      {
+        "timestamp": 1773849245,
+        "created_at": 1773849245,
+        "order_id": "ORD-1773849245-12",
+        "product": 4,
+        "dest_lon": 1676.98,
+        "dest_lat": -3008.07,
+        "urgency": "prioritario",
+        "status": "assigned",
+        "assigned_drone_id": "D1",
+        "updated_at": 1773849307
+      },
+      {
+        "timestamp": 1773849247,
+        "created_at": 1773849247,
+        "order_id": "ORD-1773849247-14",
+        "product": 2,
+        "dest_lon": 8543.94,
+        "dest_lat": -7397.38,
+        "urgency": "prioritario",
+        "status": "assigned",
+        "assigned_drone_id": "D2",
+        "updated_at": 1773849608
+      },
+      {
+        "timestamp": 1773849249,
+        "created_at": 1773849249,
+        "order_id": "ORD-1773849249-16",
+        "product": 2,
+        "dest_lon": 7844.78,
+        "dest_lat": 8299.98,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849253,
+        "created_at": 1773849253,
+        "order_id": "ORD-1773849253-22",
+        "product": 1,
+        "dest_lon": -8461.92,
+        "dest_lat": 5904.86,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849254,
+        "created_at": 1773849254,
+        "order_id": "ORD-1773849254-23",
+        "product": 4,
+        "dest_lon": -4548.33,
+        "dest_lat": 3565.57,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849257,
+        "created_at": 1773849257,
+        "order_id": "ORD-1773849257-26",
+        "product": 4,
+        "dest_lon": 2972.09,
+        "dest_lat": -3093.12,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849257,
+        "created_at": 1773849257,
+        "order_id": "ORD-1773849257-27",
+        "product": 1,
+        "dest_lon": -6444.89,
+        "dest_lat": 297.22,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849258,
+        "created_at": 1773849258,
+        "order_id": "ORD-1773849258-28",
+        "product": 2,
+        "dest_lon": -3086.24,
+        "dest_lat": -3111.4,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849267,
+        "created_at": 1773849267,
+        "order_id": "ORD-1773849267-39",
+        "product": 2,
+        "dest_lon": -9723.86,
+        "dest_lat": -4134.15,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849268,
+        "created_at": 1773849268,
+        "order_id": "ORD-1773849268-40",
+        "product": 1,
+        "dest_lon": -52.97,
+        "dest_lat": 3187.43,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849282,
+        "created_at": 1773849282,
+        "order_id": "ORD-1773849282-58",
+        "product": 1,
+        "dest_lon": 9120.17,
+        "dest_lat": 587.53,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849285,
+        "created_at": 1773849285,
+        "order_id": "ORD-1773849285-61",
+        "product": 1,
+        "dest_lon": 9651.62,
+        "dest_lat": -1047.29,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849294,
+        "created_at": 1773849294,
+        "order_id": "ORD-1773849294-72",
+        "product": 3,
+        "dest_lon": -3632.14,
+        "dest_lat": -4187.4,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849296,
+        "created_at": 1773849296,
+        "order_id": "ORD-1773849296-75",
+        "product": 2,
+        "dest_lon": -8897.98,
+        "dest_lat": 7700.97,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849298,
+        "created_at": 1773849298,
+        "order_id": "ORD-1773849298-77",
+        "product": 3,
+        "dest_lon": -938.87,
+        "dest_lat": 2795.15,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849303,
+        "created_at": 1773849303,
+        "order_id": "ORD-1773849303-84",
+        "product": 2,
+        "dest_lon": -8056.8,
+        "dest_lat": -8666.52,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849304,
+        "created_at": 1773849304,
+        "order_id": "ORD-1773849304-85",
+        "product": 1,
+        "dest_lon": 4192.5,
+        "dest_lat": 7146.69,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849310,
+        "created_at": 1773849310,
+        "order_id": "ORD-1773849310-93",
+        "product": 1,
+        "dest_lon": -950.69,
+        "dest_lat": 8920.28,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849314,
+        "created_at": 1773849314,
+        "order_id": "ORD-1773849314-97",
+        "product": 1,
+        "dest_lon": 2386.52,
+        "dest_lat": -6808.28,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849316,
+        "created_at": 1773849316,
+        "order_id": "ORD-1773849316-100",
+        "product": 2,
+        "dest_lon": 1732.94,
+        "dest_lat": -7441.02,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849317,
+        "created_at": 1773849317,
+        "order_id": "ORD-1773849317-101",
+        "product": 3,
+        "dest_lon": -6054.23,
+        "dest_lat": 2885.2,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849318,
+        "created_at": 1773849318,
+        "order_id": "ORD-1773849318-102",
+        "product": 4,
+        "dest_lon": 775.54,
+        "dest_lat": -746.18,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849322,
+        "created_at": 1773849322,
+        "order_id": "ORD-1773849322-108",
+        "product": 1,
+        "dest_lon": 797.59,
+        "dest_lat": 2907.99,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849330,
+        "created_at": 1773849330,
+        "order_id": "ORD-1773849330-118",
+        "product": 1,
+        "dest_lon": -2251.65,
+        "dest_lat": 2287.11,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849338,
+        "created_at": 1773849338,
+        "order_id": "ORD-1773849338-127",
+        "product": 2,
+        "dest_lon": 8784.53,
+        "dest_lat": -2572.95,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849338,
+        "created_at": 1773849338,
+        "order_id": "ORD-1773849338-128",
+        "product": 4,
+        "dest_lon": 831.15,
+        "dest_lat": 9912.19,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849343,
+        "created_at": 1773849343,
+        "order_id": "ORD-1773849343-134",
+        "product": 1,
+        "dest_lon": -3753.24,
+        "dest_lat": -1869.37,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849344,
+        "created_at": 1773849344,
+        "order_id": "ORD-1773849344-135",
+        "product": 4,
+        "dest_lon": 8719.79,
+        "dest_lat": -4922.22,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849348,
+        "created_at": 1773849348,
+        "order_id": "ORD-1773849348-140",
+        "product": 4,
+        "dest_lon": -3633.78,
+        "dest_lat": -2077.45,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      },
+      {
+        "timestamp": 1773849350,
+        "created_at": 1773849350,
+        "order_id": "ORD-1773849350-143",
+        "product": 3,
+        "dest_lon": 8201.14,
+        "dest_lat": -2871.79,
+        "urgency": "prioritario",
+        "status": "queued",
+        "assigned_drone_id": null
+      }
+    ]
+  },
+  "pending_approvals": {
+    "count": 0,
+    "items": []
+  }
+}

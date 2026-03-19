@@ -1,0 +1,16 @@
+{"timestamp": 1773849259, "action": "assign_order", "drone_id": "D2", "order_id": "ORD-1773849237-1", "result": "executed"}
+{"timestamp": 1773849307, "action": "assign_order", "drone_id": "D1", "order_id": "ORD-1773849245-12", "result": "executed"}
+{"timestamp": 1773849312, "action": "send_to_charge", "drone_id": "D2", "result": "executed"}
+{"timestamp": 1773849312, "action": "send_to_charge", "drone_id": "D3", "result": "executed"}
+{"timestamp": 1773849608, "action": "assign_order", "drone_id": "D2", "order_id": "ORD-1773849247-14", "result": "executed"}
+{"timestamp": 1773849710, "action": "send_to_charge", "drone_id": "D3", "result": "executed"}
+{"timestamp": 1773849710, "action": "send_to_charge", "drone_id": "D4", "result": "executed"}
+{"timestamp": 1773849710, "action": "send_to_charge", "drone_id": "D5", "result": "executed"}
+{"timestamp": 1773849756, "action": "send_to_charge", "drone_id": "D4", "result": "executed"}
+{"timestamp": 1773849771, "action": "send_to_charge", "drone_id": "D3", "result": "executed"}
+{"timestamp": 1773850892, "action": "assign_order", "payload": {"timestamp": 1773850892, "action": "assign_order", "drone_id": "D2", "order_id": "ORD-1773849254-23", "result": "executed"}, "source": "agent", "impact_level": "high"}
+{"timestamp": 1773850901, "action": "send_to_charge", "payload": {"timestamp": 1773850901, "action": "send_to_charge", "drone_id": "D1", "result": "executed"}, "source": "agent", "impact_level": "normal"}
+{"timestamp": 1773851033, "action": "add_drone", "payload": {"drone_id": "D7"}, "source": "test", "impact_level": "high"}
+{"timestamp": 1773851033, "action": "add_drone", "payload": {"drone_id": "D8"}, "source": "test", "impact_level": "high"}
+{"timestamp": 1773851054, "action": "add_drone", "payload": {"drone_id": "D9"}, "source": "test", "impact_level": "high"}
+{"timestamp": 1773851054, "action": "add_drone", "payload": {"drone_id": "D10"}, "source": "test", "impact_level": "high"}

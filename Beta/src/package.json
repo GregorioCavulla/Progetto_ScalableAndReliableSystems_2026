@@ -1,0 +1,12 @@
+{
+  "name": "srs-demo-app",
+  "version": "1.0.0",
+  "description": "App per test di bilanciamento Pod",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

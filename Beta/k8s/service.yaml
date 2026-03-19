@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-streamer-service
+  labels:
+    app: order-streamer
+spec:
+  type: ClusterIP
+  selector:
+    app: order-streamer
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sales-agent-service
+  labels:
+    app: sales-agent
+spec:
+  type: ClusterIP
+  selector:
+    app: sales-agent
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drone-fleet-service
+  labels:
+    app: drone-fleet
+spec:
+  type: ClusterIP
+  selector:
+    app: drone-fleet
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet-agent-service
+  labels:
+    app: fleet-agent
+spec:
+  type: ClusterIP
+  selector:
+    app: fleet-agent
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: custom-broker
+  labels:
+    app: custom-broker
+spec:
+  type: ClusterIP
+  selector:
+    app: custom-broker
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+  ports:
+  - name: redis
+    protocol: TCP
+    port: 6379
+    targetPort: 6379

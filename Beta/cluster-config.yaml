@@ -1,0 +1,18 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: srs-cluster
+servers: 1 # Numero di nodi master (control-plane)
+agents: 2  # Numero di nodi worker (agent)
+# Mappatura delle porte per esporre il LoadBalancer sulla macchina host (es. localhost:8080)
+ports:
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
+options:
+  k3s:
+    # Disabilita Traefik di default per mantenere un ambiente più pulito o configurarlo custom
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*
