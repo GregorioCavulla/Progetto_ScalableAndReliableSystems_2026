@@ -1,0 +1,61 @@
+# --- DEPLOYMENT SENSORE A (NORMALE - Solo Invio) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-sensore-a
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sensore-a
+  template:
+    metadata:
+      labels:
+        app: sensore-a
+    spec:
+      containers:
+      - name: streamer
+        image: iot-streamer:v1
+        imagePullPolicy: Never
+        # Qui NON mettiamo 'command', così usa streamer.py di default
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: MQTT_TOPIC
+          value: "telemetry/temperatura"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
+---
+# --- DEPLOYMENT SENSORE B (SMART - Invia e Riceve) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-sensore-b
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: sensore-b
+  template:
+    metadata:
+      labels:
+        app: sensore-b
+    spec:
+      containers:
+      - name: streamer
+        image: iot-streamer:v1
+        imagePullPolicy: Never
+        # MAGIA: Diciamo a K8s di lanciare lo script nuovo!
+        command: ["python", "-u", "streamer_smart.py"]
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: MQTT_TOPIC
+          value: "telemetry/smart"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
