@@ -1,5 +1,5 @@
 FROM python:3.9-slim
-RUN pip install paho-mqtt influxdb-client
+RUN pip install paho-mqtt influxdb-client kubernetes
 # Cambiamo questa riga per copiare tutto
 COPY . /app/
 WORKDIR /app
