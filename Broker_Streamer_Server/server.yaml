@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-centrale
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server-centrale
+  template:
+    metadata:
+      labels:
+        app: server-centrale
+    spec:
+      containers:
+      - name: central-processor
+        image: iot-server:v1
+        imagePullPolicy: Never
+        # Sovrascriviamo il comando del Dockerfile per lanciare il server invece dello streamer
+        command: ["python", "server_centrale.py"]
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: INFLUX_URL
+          value: "http://influxdb-service:8086"
+        - name: INFLUX_TOKEN
+          value: "my-super-secret-token"
+        - name: INFLUX_ORG
+          value: "laboratorio"
+        - name: INFLUX_BUCKET
+          value: "iot_data"

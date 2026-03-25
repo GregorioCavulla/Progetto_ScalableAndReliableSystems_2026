@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pannello-controllo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: console
+  template:
+    metadata:
+      labels:
+        app: console
+    spec:
+      containers:
+      - name: terminale
+        image: iot-toolbox:v1
+        imagePullPolicy: Never
+        # Questo comando tiene il pod vivo e in attesa senza fare nulla
+        command: ["sleep", "infinity"]
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
