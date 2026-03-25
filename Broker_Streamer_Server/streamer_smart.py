@@ -17,8 +17,13 @@ def on_message(client, userdata, message):
 
 # Funzione che scatta appena ci CONNETTIAMO (serve per iscriversi subito)
 def on_connect(client, userdata, flags, reason_code, properties):
-    print(f"Connesso al broker! Mi iscrivo al topic: {topic_sub}")
-    client.subscribe(topic_sub)
+    print(f"Connesso al broker! Mi iscrivo ai topic:")
+    client.subscribe("comandi/tutti") # Comandi per tutti i sensori
+
+    topic_personale = f"comandi/{pod_name}" # Comandi specifici per questo sensore
+    client.subscribe(topic_personale)
+
+    print(f"In ascolto su: {topic_personale} e comandi/tutti")
 
 print(f"--- SENSOR SMART AVVIATO ({pod_name}) ---")
 

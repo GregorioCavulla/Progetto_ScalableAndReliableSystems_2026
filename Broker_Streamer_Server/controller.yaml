@@ -1,3 +1,37 @@
+---
+# 1. Creiamo l'utente virtuale per il bot
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bot-amministratore
+---
+# 2. Definiamo cosa può fare (La Patente)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bot-role
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "deployments/scale"]
+  verbs: ["get", "patch", "update"]
+---
+# 3. Leghiamo la Patente all'Utente
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bot-binding
+subjects:
+- kind: ServiceAccount
+  name: bot-amministratore
+roleRef:
+  kind: Role
+  name: bot-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 4. Il Deployment del Pannello
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,11 +46,11 @@ spec:
       labels:
         app: console
     spec:
+      serviceAccountName: bot-amministratore # Assegniamo l'utente al Pod!
       containers:
       - name: terminale
         image: iot-toolbox:v1
         imagePullPolicy: Never
-        # Questo comando tiene il pod vivo e in attesa senza fare nulla
         command: ["sleep", "infinity"]
         env:
         - name: MQTT_BROKER
