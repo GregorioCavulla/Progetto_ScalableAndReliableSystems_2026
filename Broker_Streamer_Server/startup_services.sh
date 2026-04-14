@@ -4,7 +4,7 @@
 set -e
 
 # Assicuriamoci di essere nella cartella giusta
-DIR="$HOME/Documenti/NoVibeZone/KubernetesStructure/Broker_Streamer_Server"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR" || { echo "❌ Cartella non trovata!"; exit 1; }
 
 echo "🚀 --- INIZIALIZZAZIONE LABORATORIO IOT --- 🚀"
@@ -39,8 +39,13 @@ echo "6️⃣ Deploy dell'Ecosistema IoT..."
 kubectl apply -f server.yaml
 kubectl apply -f streamers.yaml
 kubectl apply -f controller.yaml
+kubectl apply -f mcp.yaml
+
+echo "7️⃣ Trigger manuale del primo run del Coordinator..."
+kubectl create job --from=cronjob/mcp-coordinator-job mcp-coordinator-initial-run
 
 echo ""
 echo "✅ LABORATORIO OPERATIVO AL 100%!"
 echo "👉 Per vedere i log del server:  kubectl logs -f deployment/server-centrale"
+echo "👉 Per vedere i log dell'Agent:  kubectl logs -f job/mcp-coordinator-initial-run"
 echo "👉 Per aprire la dashboard DB:  kubectl port-forward svc/influxdb-service 8086:8086"

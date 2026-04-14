@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-agent-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mcp-agent-role
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale"]
+  verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mcp-agent-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: mcp-agent-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: mcp-agent-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# PersistentVolumeClaim per mantenere i log delle decisioni
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mcp-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+# Deployment del Server MCP
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-servers
+  template:
+    metadata:
+      labels:
+        app: mcp-servers
+    spec:
+      serviceAccountName: mcp-agent-sa
+      containers:
+      - name: mcp-observer
+        image: iot-server:v1
+        imagePullPolicy: Never
+        command: ["python", "mcp_server.py", "8101"]
+        ports:
+        - containerPort: 8101
+        env:
+        - name: INFLUX_URL
+          value: "http://influxdb-service:8086"
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        volumeMounts:
+        - name: data-vol
+          mountPath: /app/data
+      - name: mcp-operations
+        image: iot-server:v1
+        imagePullPolicy: Never # Same image since codebase is together
+        command: ["python", "mcp_server.py", "8102"]
+        ports:
+        - containerPort: 8102
+        env:
+        - name: INFLUX_URL
+          value: "http://influxdb-service:8086"
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        volumeMounts:
+        - name: data-vol
+          mountPath: /app/data
+      volumes:
+      - name: data-vol
+        persistentVolumeClaim:
+          claimName: mcp-data-pvc
+---
+# Servizi per esporre i 2 endpoint
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-observer-service
+spec:
+  selector:
+    app: mcp-servers
+  ports:
+    - protocol: TCP
+      port: 8101
+      targetPort: 8101
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-operations-service
+spec:
+  selector:
+    app: mcp-servers
+  ports:
+    - protocol: TCP
+      port: 8102
+      targetPort: 8102
+---
+# CronJob per Coordinator (gira ogni 5 minuti analizzando i log e facendo azioni)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mcp-coordinator-job
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: coordinator
+            image: iot-server:v1
+            imagePullPolicy: Never
+            command: ["python", "iot_agent_coordinator.py"]
