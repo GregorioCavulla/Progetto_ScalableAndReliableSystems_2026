@@ -24,7 +24,7 @@ def main():
     # 1. Inizializzazione dell'Observer Agent
     print("\n[1/3] Inizializzazione Observer Agent...")
     observer = ObserverAgent(
-        api_key=GROQ_API_KEY,
+        api_key=GROQ_API_KEY,cd .
         base_url=GROQ_BASE_URL,
         model=MODEL_NAME,
         obs_url=OBSERVER_SERVER_URL
