@@ -1,6 +1,0 @@
-{"timestamp": 1773849340, "request_id": "APR-1773849340-872", "kind": "add_drone", "payload": {}, "reason": "High-priority order requires more capacity than available drones.", "status": "pending"}
-{"timestamp": 1773849663, "request_id": "APR-1773849340-872", "kind": "add_drone", "payload": {}, "reason": "High-priority order requires more capacity than available drones.", "status": "approved", "note": ""}
-{"timestamp": 1773849718, "request_id": "APR-1773849718-8359", "kind": "add_drone", "payload": {}, "reason": "Multiple drones are low on battery and need immediate attention.", "status": "pending"}
-{"timestamp": 1773849731, "request_id": "APR-1773849718-8359", "kind": "add_drone", "payload": {}, "reason": "Multiple drones are low on battery and need immediate attention.", "status": "approved", "note": ""}
-{"timestamp": 1773849771, "request_id": "APR-1773849771-1620", "kind": "add_drone", "payload": {"reason": "Insufficient battery to handle urgent orders."}, "reason": "Need additional drone support due to high urgency and distance requirements.", "status": "pending"}
-{"timestamp": 1773849778, "request_id": "APR-1773849771-1620", "kind": "add_drone", "payload": {"reason": "Insufficient battery to handle urgent orders."}, "reason": "Need additional drone support due to high urgency and distance requirements.", "status": "rejected", "note": ""}
