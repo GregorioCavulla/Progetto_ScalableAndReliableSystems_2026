@@ -3,7 +3,7 @@ from openai import OpenAI
 
 # --- CONFIGURAZIONE CREDENZIALI UNIVERSITARIE ---
 # Inserisci qui i dati che ti sono stati forniti
-API_KEY = "sk-mtsNMWqdXaQ_YZFeEMIBfA"      # Sostituisci con la tua API Key
+API_KEY = "chiave_groq"      # Sostituisci con la tua API Key
 BASE_URL = "https://litellm-proxy-1013932759942.europe-west8.run.app"    # Sostituisci con l'URL base (es. https://.../v1)
 MODEL_NAME = "vertex_ai/mistral-small-2503"     # Sostituisci con il nome modello (es. gemini/gemini-1.5-pro)
 

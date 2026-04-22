@@ -117,21 +117,3 @@ spec:
     - protocol: TCP
       port: 8102
       targetPort: 8102
----
-# CronJob per Coordinator (gira ogni 5 minuti analizzando i log e facendo azioni)
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: mcp-coordinator-job
-spec:
-  schedule: "*/5 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-          - name: coordinator
-            image: iot-server:v1
-            imagePullPolicy: Never
-            command: ["python", "iot_agent_coordinator.py"]
