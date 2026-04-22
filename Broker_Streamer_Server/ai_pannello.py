@@ -5,7 +5,11 @@ from openai import OpenAI
 
 # --- CONFIGURAZIONE --
 # Inseriamo la API KEY di default (sostituiscila con la tua o usa le d'ambiente)
+<<<<<<< HEAD
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "chiave_groq")
+=======
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
+>>>>>>> parent of e51111b (ProvineLab0)
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MODEL_NAME = "llama-3.3-70b-versatile"
 

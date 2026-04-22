@@ -6,7 +6,11 @@ from remediation_agent import RemediationAgent
 
 # --- CONFIGURAZIONE GROQ & INFRASTRUTTURA ---
 # Sostituisci con la tua chiave Groq (gsk_...)
+<<<<<<< HEAD
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "chiave_groq")
+=======
 GROQ_API_KEY = "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"
+>>>>>>> parent of e51111b (ProvineLab0)
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 # Modello Llama 3.3 su Groq (estremamente veloce per l'uso dei tool)
 MODEL_NAME = "llama-3.3-70b-versatile"
@@ -63,7 +67,11 @@ def main():
 
 if __name__ == "__main__":
     # Verifica che la chiave sia stata inserita
+<<<<<<< HEAD
+    if GROQ_API_KEY == "chiave_groq":
+=======
     if GROQ_API_KEY == "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":
+>>>>>>> parent of e51111b (ProvineLab0)
         print("❌ ERRORE: Inserisci la tua API KEY di Groq nel file.")
     else:
         main()

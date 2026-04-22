@@ -35,17 +35,37 @@ sleep 5 # Pausa per far recepire i comandi a K8s
 kubectl wait --for=condition=available --timeout=120s deployment/mosquitto
 kubectl wait --for=condition=available --timeout=120s deployment/influxdb
 
-echo "6️⃣ Deploy dell'Ecosistema IoT..."
+echo "7️⃣ Deploy dell'Ecosistema IoT..."
 kubectl apply -f server.yaml
 kubectl apply -f streamers.yaml
 kubectl apply -f controller.yaml
 kubectl apply -f mcp.yaml
+<<<<<<< HEAD
+sleep 50 # Tempo per far partire tutto (incluso MCP che è un po' lento)
+echo "8️⃣ Attivazione Port-Forwarding per MCP e Pannello AI (in background)..."
+kubectl port-forward svc/mcp-observer-service 8101:8101 > /dev/null 2>&1 &
+kubectl port-forward svc/mcp-operations-service 8102:8102 > /dev/null 2>&1 &
+sleep 2 # Tempo per far agganciare il port forwarding
+
+echo "9️⃣ Esecuzione del Coordinator CrewAI (Agentic System)..."
+if [ -d "venv" ]; then
+    echo "Ambiente virtuale trovato. L'Agent sta partendo in background..."
+    source venv/bin/activate
+    python iot_agent_coordinator_crew.py > agent_crew.log 2>&1 &
+    AGENT_PID=$!
+    echo $AGENT_PID > agent_crew.pid
+else
+    echo "⚠️ Ambiente virtuale non trovato. Esegui 'python3.12 -m venv venv' e installa crewai prima!"
+fi
+=======
 
 echo "7️⃣ Trigger manuale del primo run del Coordinator..."
 kubectl create job --from=cronjob/mcp-coordinator-job mcp-coordinator-initial-run
+>>>>>>> parent of e51111b (ProvineLab0)
 
 echo ""
 echo "✅ LABORATORIO OPERATIVO AL 100%!"
 echo "👉 Per vedere i log del server:  kubectl logs -f deployment/server-centrale"
-echo "👉 Per vedere i log dell'Agent:  kubectl logs -f job/mcp-coordinator-initial-run"
+echo "👉 Per vedere i log dell'Agent:  tail -f agent_crew.log"
+echo "👉 Per aprire il Pannello AI:   source venv/bin/activate && python ai_pannello.py"
 echo "👉 Per aprire la dashboard DB:  kubectl port-forward svc/influxdb-service 8086:8086"

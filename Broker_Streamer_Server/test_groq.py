@@ -3,7 +3,7 @@ from openai import OpenAI
 
 # --- CONFIGURAZIONE GROQ ---
 # Inserisci la tua API Key generata su https://console.groq.com/keys
-GROQ_API_KEY = "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" # La tua chiave Groq
+GROQ_API_KEY = "chiave_groq" # La tua chiave Groq
 
 # Modelli consigliati: "llama-3.3-70b-versatile" o "mixtral-8x7b-32768"
 MODEL_NAME = "llama-3.3-70b-versatile"
