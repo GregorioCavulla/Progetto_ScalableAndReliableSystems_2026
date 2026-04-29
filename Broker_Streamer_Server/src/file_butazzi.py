@@ -1,12 +1,20 @@
 import subprocess
 import os
+import shutil
+
 
 def interpella_ai(prompt):
-    """Invia un prompt ad aichat e restituisce la risposta."""
-    path = "/home/lorenzo/mcp/aichat"  #--> metti il path in cui hai scaricato aichat
+    """Invia un prompt ad `aichat` e restituisce la risposta.
+    Cerca l'eseguibile nel PATH oppure usa `AICHAT_PATH`.
+    """
+    path = os.getenv("AICHAT_PATH", "aichat")
+    # Se non è nel PATH e non è un percorso assoluto valido, segnala errore
+    if path == "aichat" and not shutil.which("aichat"):
+        return "Errore: 'aichat' non è installato né AICHAT_PATH è impostato."
+
     try:
         risultato = subprocess.run(
-            [path, "--execute"], 
+            [path, "--execute"],
             input=prompt,
             capture_output=True,
             text=True,
@@ -16,7 +24,7 @@ def interpella_ai(prompt):
     except subprocess.CalledProcessError as e:
         return f"Errore nell'esecuzione di aichat: {e.stderr}"
     except FileNotFoundError:
-        return "Errore: aichat non è installato o non è nel PATH."
+        return "Errore: aichat non è installato o il percorso fornito in AICHAT_PATH è errato."
 
 def main():
 
@@ -32,8 +40,9 @@ def main():
 
     print("--- Analisi in corso ---")
     risposta = interpella_ai(prompt)
-    
+
     print(f"Risultato dall'IA:\n{risposta}")
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     main()

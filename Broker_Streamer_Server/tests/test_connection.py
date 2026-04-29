@@ -1,21 +1,20 @@
 import os
 from openai import OpenAI
 
-# --- CONFIGURAZIONE CREDENZIALI UNIVERSITARIE ---
-# Inserisci qui i dati che ti sono stati forniti
-API_KEY = "chiave_groq"      # Sostituisci con la tua API Key
-BASE_URL = "https://litellm-proxy-1013932759942.europe-west8.run.app"    # Sostituisci con l'URL base (es. https://.../v1)
-MODEL_NAME = "vertex_ai/mistral-small-2503"     # Sostituisci con il nome modello (es. gemini/gemini-1.5-pro)
+# --- CONFIGURAZIONE CREDENZIALI (leggi da environment) ---
+API_KEY = os.getenv("TEST_API_KEY", "")
+BASE_URL = os.getenv("TEST_BASE_URL", "")
+MODEL_NAME = os.getenv("TEST_MODEL_NAME", "")
 
 def test_university_connection():
     print(f"--- TEST DI CONNESSIONE LITELLM ---")
-    print(f"Modello: {MODEL_NAME}")
-    print(f"Endpoint: {BASE_URL}")
+    print(f"Modello: {MODEL_NAME or '<non impostato>'}")
+    print(f"Endpoint: {BASE_URL or '<non impostato>'}")
     
     # Inizializzazione del client compatibile con OpenAI
     client = OpenAI(
-        api_key=API_KEY,
-        base_url=BASE_URL
+        api_key=(API_KEY or None),
+        base_url=(BASE_URL or None)
     )
 
     try:

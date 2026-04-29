@@ -1,1 +1,22 @@
 venv
+venv_env.sh
+**/usb/
+
+# Sensitive environment and credentials
+.env
+*.env
+*.api_key
+*.key
+*.pem
+secrets.json
+credentials.ini
+
+# Application logs and runtime files
+logs/
+*.log
+
+# Editor and system files
+.vscode/
+__pycache__/
+*.pyc
+

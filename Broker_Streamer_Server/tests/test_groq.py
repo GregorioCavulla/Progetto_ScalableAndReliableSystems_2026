@@ -1,20 +1,17 @@
 import os
 from openai import OpenAI
 
-# --- CONFIGURAZIONE GROQ ---
-# Inserisci la tua API Key generata su https://console.groq.com/keys
-GROQ_API_KEY = "chiave_groq" # La tua chiave Groq
-
-# Modelli consigliati: "llama-3.3-70b-versatile" o "mixtral-8x7b-32768"
-MODEL_NAME = "llama-3.3-70b-versatile"
+# --- CONFIGURAZIONE GROQ (leggi da env) ---
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 def test_groq_connection():
     print(f"--- ⚡ TEST DI CONNESSIONE GROQ ---")
     
     # Inizializzazione client (Groq è compatibile con l'SDK OpenAI)
     client = OpenAI(
-        base_url="https://api.groq.com/openai/v1",
-        api_key=GROQ_API_KEY
+        base_url=os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+        api_key=(GROQ_API_KEY or None)
     )
 
     try:
