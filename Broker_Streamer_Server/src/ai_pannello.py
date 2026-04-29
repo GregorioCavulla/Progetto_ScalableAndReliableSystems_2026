@@ -4,14 +4,10 @@ import requests
 from openai import OpenAI
 
 # --- CONFIGURAZIONE --
-# Inseriamo la API KEY di default (sostituiscila con la tua o usa le d'ambiente)
-<<<<<<< HEAD
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "chiave_groq")
-=======
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
->>>>>>> parent of e51111b (ProvineLab0)
-GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-MODEL_NAME = "llama-3.3-70b-versatile"
+# Leggi le impostazioni sensibili da variabili d'ambiente per sicurezza
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
 
 OBSERVER_URL = "http://mcp-observer-service:8101/tool"
 OPERATIONS_URL = "http://mcp-operations-service:8102/tool"
@@ -136,11 +132,11 @@ def avvia_pannello_ai():
     print("   🤖  PANNELLO KUBERNETES IoT - GUIDATO DA GROQ  ")
     print("==================================================")
     
-    # Usa le API key per Groq
-    if GROQ_API_KEY.startswith("gsk_Fdjy") and GROQ_API_KEY.endswith("CN:"): # dummy check
-        print("⚠️ ATTENZIONE: Ricordati di impostare la tua vera API KEY di Groq!")
-        
-    client = OpenAI(api_key=GROQ_API_KEY, base_url=GROQ_BASE_URL)
+    # Avvisa se la API key non è stata impostata
+    if not GROQ_API_KEY:
+        print("⚠️ ATTENZIONE: Imposta la variabile d'ambiente GROQ_API_KEY prima di usare il pannello.")
+
+    client = OpenAI(api_key=GROQ_API_KEY or None, base_url=GROQ_BASE_URL)
     history = [{"role": "system", "content": SYSTEM_PROMPT}]
     
     print("Digita i comandi che desideri (es: 'accendi tutte le ventole', 'quanti sensori ci sono attivi?')")

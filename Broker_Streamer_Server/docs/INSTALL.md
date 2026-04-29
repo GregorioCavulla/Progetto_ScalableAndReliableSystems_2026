@@ -2,6 +2,10 @@
 
 L'intero avvio dell'infrastruttura (Broker MQTT, InfluxDB, Server Centrale, Streamers, ecc.) è stato automatizzato tramite uno script bash.
 
+# Guida all'Avvio del Progetto
+
+L'intero avvio dell'infrastruttura (Broker MQTT, InfluxDB, Server Centrale, Streamers, ecc.) è stato automatizzato tramite uno script bash.
+
 ## 1. Prerequisiti
 
 Prima di lanciare lo script, assicuratevi di avere installati e configurati sulla vostra macchina i seguenti strumenti:
@@ -34,12 +38,10 @@ Una volta che lo script termina con successo mostrando il messaggio "LABORATORIO
 
 Ecco alcuni comandi utili per monitorare o ispezionare il cluster:
 
-- **Visualizzare i log del server centrale in tempo reale:**
   ```bash
   kubectl logs -f deployment/server-centrale
   ```
 
-- **Accedere all'interfaccia di InfluxDB (Database):**
   Per consultare e interrogare il database dal vostro browser, aprite un port-forwarding:
   ```bash
   kubectl port-forward svc/influxdb-service 8086:8086
@@ -48,7 +50,6 @@ Ecco alcuni comandi utili per monitorare o ispezionare il cluster:
   Username: `admin`
   Password: `password123`
 
-- **Vedere lo stato di tutti i pod (per controllare che tutto giri correttamente):**
   ```bash
   kubectl get pods
   ```

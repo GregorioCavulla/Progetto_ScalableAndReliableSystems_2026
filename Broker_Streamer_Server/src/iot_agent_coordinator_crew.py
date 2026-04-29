@@ -8,10 +8,11 @@ from crewai import Agent, Task, Crew, Process
 from crewai.tools import tool
 
 # --- CONFIGURAZIONE GROQ & INFRASTRUTTURA ---
-GROQ_API_KEY = os.getenv("chiave_groq", "chiave_groq")
-os.environ["OPENAI_API_KEY"] = GROQ_API_KEY
-os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
-MODEL_NAME = "openai/llama-3.3-70b-versatile"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+if GROQ_API_KEY:
+    os.environ["OPENAI_API_KEY"] = GROQ_API_KEY
+    os.environ["OPENAI_API_BASE"] = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "openai/llama-3.3-70b-versatile")
 
 OBSERVER_SERVER_URL = "http://localhost:8101" #q: a che file corrisponde? --- a: MCP Observer Server, in che file si trova? --- a: MCP Observer Server, in mcp_server.py
 OPERATIONS_SERVER_URL = "http://localhost:8102"  #q: a che file corrisponde? --- a: MCP Operations Server, in che file si trova? --- a: MCP Operations Server, in mcp_server.py

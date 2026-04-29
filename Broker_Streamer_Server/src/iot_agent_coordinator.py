@@ -5,20 +5,16 @@ from observer_agent import ObserverAgent
 from remediation_agent import RemediationAgent
 
 # --- CONFIGURAZIONE GROQ & INFRASTRUTTURA ---
-# Sostituisci con la tua chiave Groq (gsk_...)
-<<<<<<< HEAD
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "chiave_groq")
-=======
-GROQ_API_KEY = "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"
->>>>>>> parent of e51111b (ProvineLab0)
-GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-# Modello Llama 3.3 su Groq (estremamente veloce per l'uso dei tool)
-MODEL_NAME = "llama-3.3-70b-versatile"
+# Leggi le chiavi e gli endpoint da environment per sicurezza
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+# Modello Llama 3.3 su Groq (default)
+MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
 
 # Endpoint dei server MCP (Assicurati che siano attivi)
-OBSERVER_SERVER_URL = "http://mcp-observer-service:8101"
-OPERATIONS_SERVER_URL = "http://mcp-operations-service:8102"
-OPERATIONS_TOKEN = "segreto-universitario"
+OBSERVER_SERVER_URL = os.getenv("OBSERVER_SERVER_URL", "http://mcp-observer-service:8101")
+OPERATIONS_SERVER_URL = os.getenv("OPERATIONS_SERVER_URL", "http://mcp-operations-service:8102")
+OPERATIONS_TOKEN = os.getenv("OPERATIONS_TOKEN", "segreto-universitario")
 
 def main():
     print("==================================================")
@@ -28,7 +24,7 @@ def main():
     # 1. Inizializzazione dell'Observer Agent
     print("\n[1/3] Inizializzazione Observer Agent...")
     observer = ObserverAgent(
-        api_key=GROQ_API_KEY,cd .
+        api_key=GROQ_API_KEY,
         base_url=GROQ_BASE_URL,
         model=MODEL_NAME,
         obs_url=OBSERVER_SERVER_URL
@@ -67,11 +63,7 @@ def main():
 
 if __name__ == "__main__":
     # Verifica che la chiave sia stata inserita
-<<<<<<< HEAD
-    if GROQ_API_KEY == "chiave_groq":
-=======
-    if GROQ_API_KEY == "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":
->>>>>>> parent of e51111b (ProvineLab0)
-        print("❌ ERRORE: Inserisci la tua API KEY di Groq nel file.")
+    if not GROQ_API_KEY:
+        print("❌ ERRORE: Inserisci la tua API KEY di Groq nella variabile d'ambiente GROQ_API_KEY.")
     else:
         main()

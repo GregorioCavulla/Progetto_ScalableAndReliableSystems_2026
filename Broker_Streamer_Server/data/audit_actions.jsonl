@@ -1,0 +1,1 @@
+{"timestamp": 1777456820, "action": "send_mqtt_command", "payload": {"target": "tutti", "command": "PING"}, "source": "agent"}
