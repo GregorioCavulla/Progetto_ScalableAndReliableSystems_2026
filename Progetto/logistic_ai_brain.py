@@ -2,70 +2,70 @@ import os
 import time
 import json
 from openai import OpenAI
+from health_agent import HealthAgent
+from logistic_agent import LogisticAgent
 
-# --- CONFIGURAZIONE LLM (OpenAI Compatible via LiteLLM) ---
-# Info della tua configurazione
+# --- CONFIGURAZIONE LLM ---
 API_BASE = "https://litellm-proxy-1013932759942.europe-west8.run.app/v1"
 API_KEY = os.getenv("OPENAI_API_KEY", "")
-MODEL_NAME = "gemini-2.5-pro" # Alternativa: "vertex_ai/mistral-small-2503"
+MODEL_NAME = "gemini-2.5-pro"
 
-COMPRESS_THRESHOLD = 8000
-STREAM_RESPONSE = True
-SAVE_HISTORY = True
+# MCP Config
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8101")
+MCP_TOKEN = os.getenv("MCP_TOKEN", "REDACTED_MCP_TOKEN")
 
-# --- INIZIALIZZAZIONE CLIENT ---
-# Sfruttiamo l'SDK nativo "OpenAI" ma puntando al tuo proxy LiteLLM (gemini)
-client = OpenAI(
+# Inizializzazione agenti
+health_agent = HealthAgent(
     api_key=API_KEY,
-    base_url=API_BASE
+    base_url=API_BASE,
+    model=MODEL_NAME,
+    mcp_url=MCP_SERVER_URL,
+    token=MCP_TOKEN
+)
+
+logistic_agent = LogisticAgent(
+    api_key=API_KEY,
+    base_url=API_BASE,
+    model=MODEL_NAME,
+    mcp_url=MCP_SERVER_URL,
+    token=MCP_TOKEN
 )
 
 def run_agent_loop():
     print("🧠 --- AVVIO ORCHESTRATORE AI (VANILLA LLM AGENT) --- 🧠")
-    print(f"🔗 Endpoint: {API_BASE} | Modello: {MODEL_NAME}")
     
-    # Memoria della conversazione se l'agente deve mantenere del contesto iterativo
-    chat_history = [
-        {
-            "role": "system",
-            "content": (
-                "Sei l'Agente Logistico di orchestrazione droni. Il tuo obiettivo è analizzare "
-                "gli ordini in attesa e assegnarli ai droni liberi. "
-                "Agisci sempre invocando le function calls disponibili."
-            )
-        }
-    ]
-
+    if not API_KEY:
+        print("❌ OPENAI_API_KEY non settata! Imposta la variabile d'ambiente.")
+        return
+    
     while True:
         try:
-            print("\n[AI] 🧐 Valutazione stato e attesa nuovi task...")
+            print("\n[AI] 🧐 Monitoraggio salute flotta...")
             
-            # --- 1. TODO: Lettura Contesto e Stato (Sensori, DB, Droni) ---
-            # Qui inserirai la logica "Domain-First" per leggere da InfluxDB o interrogare l'MCP
-            context_data = "Simulazione: 1 drone libero, 1 ordine pending."
+            # Esecuzione Health Agent
+            try:
+                health_report = health_agent.run()
+                print(f"📢 Salute Flotta: {health_report}")
+            except Exception as e:
+                print(f"❌ Errore Health Agent: {e}")
             
-            chat_history.append({"role": "user", "content": f"Nuovo stato sistema: {context_data}"})
+            # Simulazione lettura ordini (in produzione, da InfluxDB)
+            orders_queue = [
+                {"order_id": "ORD-123", "pickup_lat": 0.01, "pickup_lon": 0.01, "drop_lat": 0.02, "drop_lon": 0.02}
+            ]
             
-            # Trunking opzionale basato su COMPRESS_THRESHOLD (per evitare esplosioni di contesto)
-            # if len(str(chat_history)) > COMPRESS_THRESHOLD:
-            #     comprimere o pulire la cronologia
-
-            # --- 2. Invocazione del Modello LLM ---
-            # response = client.chat.completions.create(
-            #     model=MODEL_NAME,
-            #     messages=chat_history,
-            #     stream=STREAM_RESPONSE,
-            #     # tools=[qui_andra_definito_lo_schema_json_dei_tuoi_tool_mcp]
-            # )
+            if orders_queue:
+                print("[AI] 📦 Gestione ordini...")
+                try:
+                    logistic_report = logistic_agent.run(orders_queue)
+                    print(f"✅ Logistica: {logistic_report}")
+                except Exception as e:
+                    print(f"❌ Errore Logistic Agent: {e}")
             
-            # --- 3. TODO: Esecuzione Tools (Reason & Act) ---
-            # Se l'LLM risponde con `tool_calls`, iteriamo su di essi per assegnare ordini 
-            # tramite MQTT o per interrogare altre metriche.
-            
-            time.sleep(15) # Pausa tra un'orbita decisionale e l'altra
+            time.sleep(30)  # Pausa tra cicli
 
         except Exception as e:
-            print(f"❌ Errore nel loop dell'ormatore LLM: {e}")
+            print(f"❌ Errore nel loop: {e}")
             time.sleep(5)
 
 if __name__ == "__main__":
