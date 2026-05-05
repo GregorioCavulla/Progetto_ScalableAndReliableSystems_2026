@@ -12,9 +12,9 @@ CLIENT_ID = os.getenv("CLIENT_SIM_ID", f"client-sim-{random.randint(1, 100)}")
 
 TOPIC_ORDINI = "business/ordini/nuovi"
 
-# Area di copertura Hub per generare coordinate limitrofe (Bologna center come base)
-BASE_LAT = 44.4949
-BASE_LON = 11.3426
+# Area di copertura Hub per generare coordinate limitrofe (sistema di riferimento centrato su [0.0000, 0.0000])
+BASE_LAT = 0.0000
+BASE_LON = 0.0000
 RADIUS = 0.05 # circa 5km 
 
 def generate_random_coordinate():

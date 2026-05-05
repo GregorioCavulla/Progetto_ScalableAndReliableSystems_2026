@@ -14,8 +14,8 @@ TOPIC_PUB = "telemetry/drones"
 TOPIC_SUB = f"comandi/{DRONE_ID}"
 
 # Coordinate base (es. HUB centrale)
-BASE_LAT = 44.4949
-BASE_LON = 11.3426
+BASE_LAT = 0.0000
+BASE_LON = 0.0000
 
 class Drone:
     def __init__(self, drone_id):
@@ -24,7 +24,7 @@ class Drone:
         self.lon = BASE_LON
         self.battery = 100.0
         self.state = "IDLE" # Stati: IDLE, IN_DELIVERY, RETURNING, MAINTENANCE
-    #    self.wear = 0.0 # Potenziale metrica di usura meccanica (non implementata in questa versione) TODO
+        self.wear = 0.0 # Metrica di usura meccanica
         self.current_order = None
         self.target_lat = None
         self.target_lon = None
@@ -85,16 +85,16 @@ class Drone:
                     self.lat += (d_lat / distance) * self.speed
                     self.lon += (d_lon / distance) * self.speed
                     self.battery -= self.battery_drain
+                    self.wear += random.uniform(0.01, 0.05)
         
         # Logica di ricarica quando fermo alla base
         if self.state == "IDLE" and self.battery < 100.0:
             self.battery = min(100.0, self.battery + 0.5)
 
-        # Prevenzione danni: batteria scarica
-        if self.battery <= 0:
-            self.battery = 0
+        # Controllo usura
+        if self.wear > 10.0 and self.state != "MAINTENANCE":
             self.state = "MAINTENANCE"
-            print(f"[{self.id}] ⚠️ BATTERIA ESAURITA - Drone atterrato d'emergenza fuori asse.")
+            print(f"[{self.id}] ⚠️ USURA ELEVATA - Drone in manutenzione.")
 
     def get_telemetry(self):
         return {
@@ -102,6 +102,7 @@ class Drone:
             "lat": round(self.lat, 6),
             "lon": round(self.lon, 6),
             "battery": round(self.battery, 2),
+            "wear": round(self.wear, 2),
             "state": self.state,
             "order_id": self.current_order,
             "timestamp": time.time()

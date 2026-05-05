@@ -70,12 +70,36 @@ def main():
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/mosquitto || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true", allow_failure=True)
 
+    # 6.5 Port-forward per InfluxDB (necessario per accesso locale)
+    print("\n6.5️⃣ Avvio port-forward per InfluxDB sulla porta locale 8086...")
+    influx_proc = subprocess.Popen(["kubectl", "port-forward", "svc/influxdb-service", "8086:8086"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # 7. Avvio automatico dell'MCP server e del brain locale
+    print("\n7️⃣ Avvio automatico dell'MCP server e del Logistic Brain...")
+    logs_dir = os.path.join(project_root, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+
+    mcp_log_path = os.path.join(logs_dir, "mcp_server.log")
+    brain_log_path = os.path.join(logs_dir, "logistic_ai_brain.log")
+    pid_file = os.path.join(project_root, "agent_pids.txt")
+
+    with open(mcp_log_path, "a") as mcp_log, open(brain_log_path, "a") as brain_log:
+        mcp_proc = subprocess.Popen([sys.executable, os.path.join(project_root, "mcp_server.py")], stdout=mcp_log, stderr=mcp_log)
+        brain_proc = subprocess.Popen([sys.executable, os.path.join(project_root, "logistic_ai_brain.py")], stdout=brain_log, stderr=brain_log)
+
+    with open(pid_file, "w") as f:
+        f.write(f"{mcp_proc.pid}\n")
+        f.write(f"{brain_proc.pid}\n")
+        f.write(f"{influx_proc.pid}\n")
+
     print("\n✅ AMBIENTE BETA AVVIATO CON SUCCESSO!")
     print("👉 Comandi Utili:")
     print("   Visualizza i pod:          kubectl get pods")
     print("   Visualizza log droni:      kubectl logs -f -l app=drone-simulator")
     print("   Visualizza log ordini:     kubectl logs -f -l app=client-simulator")
     print("   Visualizza log server:     kubectl logs -f -l app=central-server")
+    print("   Visualizza log MCP:        tail -f logs/mcp_server.log")
+    print("   Visualizza log Agent:      tail -f logs/logistic_ai_brain.log")
 
 if __name__ == "__main__":
     main()
