@@ -22,6 +22,10 @@ def execute_tool():
         result = mcp.get_drones_telemetry(**args)
         print(f"MCP: get_drones_telemetry -> {result}")
         return jsonify({"result": result})
+    elif name == "get_pending_orders":
+        result = mcp.get_pending_orders(**args)
+        print(f"MCP: get_pending_orders -> {result}")
+        return jsonify({"result": result})
     
     # Remediation tools
     elif name == "send_mqtt_command":

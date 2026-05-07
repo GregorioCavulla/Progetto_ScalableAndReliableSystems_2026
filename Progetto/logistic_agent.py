@@ -45,6 +45,19 @@ class LogisticAgent:
             {
                 "type": "function",
                 "function": {
+                    "name": "get_pending_orders",
+                    "description": "Ottieni gli ordini in sospeso da InfluxDB.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "minutes_ago": {"type": "integer", "default": 60}
+                        }
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "send_mqtt_command",
                     "description": "Invia un comando MQTT a un drone per assegnare una missione.",
                     "parameters": {
@@ -68,62 +81,75 @@ class LogisticAgent:
         resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers)
         return resp.json().get("result", {})
 
-    def run(self, orders_queue):
-        print("Logistic Agent: Starting run")
-        # Per semplicità, assumiamo che orders_queue sia una lista di ordini
-        # In produzione, leggere da InfluxDB o MQTT
+    def run(self, orders_queue=None):
+        print("\n" + "="*80)
+        print("📦 LOGISTIC AGENT - INIZIO GESTIONE ORDINI")
+        print("="*80)
+        
+        # Se orders_queue non è fornito, istruiamo l'LLM a recuperarlo
+        if orders_queue is None or len(orders_queue) == 0:
+            user_message = "Leggi gli ordini in sospeso dal sistema e assegna i droni disponibili alle missioni. Usa il tool get_pending_orders per recuperare gli ordini da InfluxDB."
+        else:
+            user_message = f"Gestisci questi ordini: {json.dumps(orders_queue)}"
+        
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Gestisci questi ordini: {json.dumps(orders_queue)}"}
+            {"role": "user", "content": user_message}
         ]
 
-        try:
-            # Ciclo di ragionamento
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=self.tools
-            )
-        except Exception as e:
-            print(f"Logistic Agent: Error calling LLM: {e}")
-            return f"Errore LLM: {e}"
-
-        msg = response.choices[0].message
-        print(f"Logistic Agent: Received response, tool_calls: {len(msg.tool_calls) if msg.tool_calls else 0}")
-        if msg.tool_calls:
-            # 1. APPEND FUORI DAL CICLO: Aggiungiamo l'intenzione dell'IA UNA SOLA VOLTA
-            messages.append(msg)
-            
-            # 2. CICLO SUI TOOL: Eseguiamo ogni tool richiesto
-            for tool_call in msg.tool_calls:
-                # Per i log, aggiungiamo il prefisso del file in cui ti trovi
-                print(f"Calling tool {tool_call.function.name}")
-                result = self.call_mcp(tool_call.function.name, json.loads(tool_call.function.arguments))
-                print(f"Tool result: {result}")
-                
-                # 3. APPEND DEL RISULTATO DENTRO IL CICLO
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "name": tool_call.function.name,
-                    "content": json.dumps(result)
-                })
-            
+    
+        print("\n⏳ Avvio loop di ragionamento LLM...")
+        
+        # QUESTO È IL CUORE DELL'AGENTE: Un loop che continua finché l'LLM non ha finito
+        while True:
             try:
-                # 4. CHIAMATA FINALE A GEMINI
-                final_resp = self.client.chat.completions.create(model=self.model, messages=messages)
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    tools=self.tools
+                )
                 
-                # --- FIX PER IL BUG "NoneType" ---
-                final_content = final_resp.choices[0].message.content
-                if final_content is None:
-                    final_content = "Elaborazione completata con successo (Nessun output testuale aggiuntivo)."
+                msg = response.choices[0].message
                 
-                print(f"Final response: {final_content[:100]}...")
-                return final_content
+                # 1. CONDIZIONE DI USCITA: Se l'LLM NON vuole usare tool, ha finito il ragionamento
+                if not msg.tool_calls:
+                    final_content = msg.content
+                    if final_content is None:
+                        final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
+                    
+                    print(f"\n📢 RISPOSTA FINALE DEL LLM:\n{final_content}")
+                    print(f"\n{'='*80}\n")
+                    return final_content
+                
+                # 2. ESECUZIONE TOOL: L'LLM vuole raccogliere altri dati o eseguire azioni
+                tool_count = len(msg.tool_calls)
+                print(f"\n🔧 L'LLM VUOLE USARE {tool_count} TOOL:")
+                
+                # Salviamo l'intenzione dell'LLM nella cronologia
+                messages.append(msg)
+                
+                # Eseguiamo tutti i tool che ha richiesto
+                for i, tool_call in enumerate(msg.tool_calls, 1):
+                    tool_name = tool_call.function.name
+                    tool_args = json.loads(tool_call.function.arguments)
+                    print(f"\n   [{i}] 🛠️  Eseguo Tool: {tool_name}")
+                    print(f"       Argomenti: {tool_args}")
+                    
+                    # Chiama il server MCP
+                    result = self.call_mcp(tool_name, tool_args)
+                    print(f"       ✅ Risultato: {result}")
+                    
+                    # Salviamo il risultato del tool nella cronologia
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": tool_name,
+                        "content": json.dumps(result)
+                    })
+                
+                print("\n⏳ Re-invio i risultati all'LLM per decidere il prossimo step...")
+                # Il ciclo riparte! Ora l'LLM vedrà i dati e deciderà il prossimo tool da usare.
                 
             except Exception as e:
-                print(f"Error in final response: {e}")
-                return f"Errore finale: {e}"
-                
-        # Se non ci sono tool chiamati, restituisce il contenuto normale
-        return msg.content or "Nessun output generato."
+                print(f"\n❌ ERRORE NEL LOOP AGENTE: {e}")
+                return f"Errore: {e}"

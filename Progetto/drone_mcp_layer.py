@@ -44,7 +44,7 @@ class DroneMCP:
         self.influx_client = InfluxDBClient(url=self.influx_url, token=self.influx_token, org=self.influx_org)
 
         # 3. Setup MQTT
-        self.mqtt_broker = os.getenv("MQTT_BROKER", "localhost")
+        self.mqtt_broker = os.getenv("MQTT_BROKER", "mosquitto-service")
         self.mqtt_port = 1883
 
     def _log_action(self, action: str, payload: dict, source: str = "agent"):
@@ -91,7 +91,6 @@ class DroneMCP:
             results = {}
             print(f"MCP Influx: Query returned {len(tables)} tables")
             for table in tables:
-                print(f"MCP Influx: Table has {len(table.records)} records")
                 for record in table.records:
                     values = getattr(record, "values", {}) or {}
                     if not isinstance(values, dict):
@@ -100,31 +99,21 @@ class DroneMCP:
                         except Exception:
                             values = {}
 
-                    drone_id = values.get("id", values.get("drone_id", "unknown")) or "unknown"
-                    state = values.get("state")
-                    battery = values.get("battery")
-                    wear = values.get("wear")
+                    # InfluxDB restituisce i tag e i campi separatamente
+                    drone_id = values.get("drone_id", "unknown")
+                    field = values.get("_field")
+                    value = values.get("_value")
 
-                    # Alcuni record InfluxDB possono essere distribuiti su _field/_value
-                    if battery is None or wear is None:
-                        field = values.get("_field")
-                        value = values.get("_value")
-                        if field in ("battery", "wear") and value is not None:
-                            drone_entry = results.setdefault(drone_id, {"state": state or "unknown", "battery": 0, "wear": 0})
-                            drone_entry[field] = value
-                            if state is not None:
-                                drone_entry["state"] = state
-                            print(f"MCP Influx: Record {drone_id} (field {field}) - state: {drone_entry['state']}, battery: {drone_entry['battery']}, wear: {drone_entry['wear']}")
-                            continue
-
-                    drone_entry = results.setdefault(drone_id, {"state": state or "unknown", "battery": 0, "wear": 0})
-                    if state is not None:
-                        drone_entry["state"] = state
-                    if battery is not None:
-                        drone_entry["battery"] = battery
-                    if wear is not None:
-                        drone_entry["wear"] = wear
-                    print(f"MCP Influx: Record {drone_id} - state: {drone_entry['state']}, battery: {drone_entry['battery']}, wear: {drone_entry['wear']}")
+                    # Inizializziamo il drone se non esiste nel dizionario
+                    drone_entry = results.setdefault(drone_id, {"state": "unknown", "battery": 0, "wear": 0})
+                    
+                    # Popoliamo i dati in base a quale campo stiamo leggendo in questa riga
+                    if field == "status":
+                        drone_entry["state"] = value
+                    elif field == "battery":
+                        drone_entry["battery"] = value
+                    elif field == "wear":
+                        drone_entry["wear"] = value
             
             # Conta droni in manutenzione
             maintenance_count = sum(1 for d in results.values() if d["state"] == "MAINTENANCE")
@@ -137,6 +126,52 @@ class DroneMCP:
             }
         except Exception as e:
             return {"error": str(e)}
+
+    def get_pending_orders(self, minutes_ago: int = 60) -> dict:
+        """Interroga InfluxDB per gli ordini in sospeso"""
+        try:
+            query_api = self.influx_client.query_api()
+            # Query per ottenere gli ordini recenti non ancora assegnati
+            query = f'''
+                from(bucket:"{self.influx_bucket}")
+                |> range(start: -{minutes_ago}m)
+                |> filter(fn: (r) => r._measurement == "business_orders")
+            '''
+            tables = query_api.query(query, org=self.influx_org)
+            
+            orders = []
+            print(f"MCP Influx: Pending orders query returned {len(tables)} tables")
+            for table in tables:
+                print(f"MCP Influx: Orders table has {len(table.records)} records")
+                for record in table.records:
+                    values = getattr(record, "values", {}) or {}
+                    if not isinstance(values, dict):
+                        try:
+                            values = dict(values)
+                        except Exception:
+                            values = {}
+
+                    order_id = values.get("order_id", "unknown")
+                    priority = values.get("priority", "normal")
+                    weight = values.get("_value")
+                    
+                    # Evitiamo duplicati
+                    if not any(o["order_id"] == order_id for o in orders):
+                        orders.append({
+                            "order_id": order_id,
+                            "priority": priority,
+                            "weight_kg": weight or 0.0,
+                            "timestamp": values.get("_time", int(time.time()))
+                        })
+                    print(f"MCP Influx: Order {order_id} (priority {priority}, weight {weight}kg)")
+            
+            return {
+                "total_pending": len(orders),
+                "orders": orders,
+                "status": "ok" if orders else "no_pending_orders"
+            }
+        except Exception as e:
+            return {"error": str(e), "total_pending": 0, "orders": []}
 
     # ==========================================
     # 🛠️ FUNZIONI PER L'ACTION MCP (Write)
