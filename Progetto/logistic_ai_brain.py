@@ -49,18 +49,13 @@ def run_agent_loop():
             except Exception as e:
                 print(f"❌ Errore Health Agent: {e}")
             
-            # Simulazione lettura ordini (in produzione, da InfluxDB)
-            orders_queue = [
-                {"order_id": "ORD-123", "pickup_lat": 0.01, "pickup_lon": 0.01, "drop_lat": 0.02, "drop_lon": 0.02}
-            ]
-            
-            if orders_queue:
-                print("[AI] 📦 Gestione ordini...")
-                try:
-                    logistic_report = logistic_agent.run(orders_queue)
-                    print(f"✅ Logistica: {logistic_report}")
-                except Exception as e:
-                    print(f"❌ Errore Logistic Agent: {e}")
+            # Gestione ordini - l'agente leggerà da InfluxDB via tool get_pending_orders
+            print("[AI] 📦 Gestione ordini...")
+            try:
+                logistic_report = logistic_agent.run()
+                print(f"✅ Logistica: {logistic_report}")
+            except Exception as e:
+                print(f"❌ Errore Logistic Agent: {e}")
             
             time.sleep(30)  # Pausa tra cicli
 

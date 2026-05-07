@@ -78,59 +78,69 @@ class HealthAgent:
         return resp.json().get("result", {})
 
     def run(self):
-        print("Health Agent: Starting run")
+        print("\n" + "="*80)
+        print("🏥 HEALTH AGENT - INIZIO CICLO DI MONITORAGGIO")
+        print("="*80)
+        
+        user_message = "Controlla la salute della flotta di droni e prendi azioni correttive se necessario."
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": "Controlla la salute della flotta di droni e prendi azioni correttive se necessario."}
+            {"role": "user", "content": user_message}
         ]
 
-        try:
-            # Ciclo di ragionamento dell'LLM
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=self.tools
-            )
-        except Exception as e:
-            print(f"Health Agent: Error calling LLM: {e}")
-            return f"Errore LLM: {e}"
-
-        msg = response.choices[0].message
-        print(f"Health Agent: Received response, tool_calls: {len(msg.tool_calls) if msg.tool_calls else 0}")
-        if msg.tool_calls:
-            # 1. APPEND FUORI DAL CICLO: Aggiungiamo l'intenzione dell'IA UNA SOLA VOLTA
-            messages.append(msg)
-            
-            # 2. CICLO SUI TOOL: Eseguiamo ogni tool richiesto
-            for tool_call in msg.tool_calls:
-                # Per i log, aggiungiamo il prefisso del file in cui ti trovi
-                print(f"Calling tool {tool_call.function.name}")
-                result = self.call_mcp(tool_call.function.name, json.loads(tool_call.function.arguments))
-                print(f"Tool result: {result}")
-                
-                # 3. APPEND DEL RISULTATO DENTRO IL CICLO
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "name": tool_call.function.name,
-                    "content": json.dumps(result)
-                })
-            
+    
+        print("\n⏳ Avvio loop di ragionamento LLM...")
+        
+        # QUESTO È IL CUORE DELL'AGENTE: Un loop che continua finché l'LLM non ha finito
+        while True:
             try:
-                # 4. CHIAMATA FINALE A GEMINI
-                final_resp = self.client.chat.completions.create(model=self.model, messages=messages)
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    tools=self.tools
+                )
                 
-                # --- FIX PER IL BUG "NoneType" ---
-                final_content = final_resp.choices[0].message.content
-                if final_content is None:
-                    final_content = "Elaborazione completata con successo (Nessun output testuale aggiuntivo)."
+                msg = response.choices[0].message
                 
-                print(f"Final response: {final_content[:100]}...")
-                return final_content
+                # 1. CONDIZIONE DI USCITA: Se l'LLM NON vuole usare tool, ha finito il ragionamento
+                if not msg.tool_calls:
+                    final_content = msg.content
+                    if final_content is None:
+                        final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
+                    
+                    print(f"\n📢 RISPOSTA FINALE DEL LLM:\n{final_content}")
+                    print(f"\n{'='*80}\n")
+                    return final_content
+                
+                # 2. ESECUZIONE TOOL: L'LLM vuole raccogliere altri dati o eseguire azioni
+                tool_count = len(msg.tool_calls)
+                print(f"\n🔧 L'LLM VUOLE USARE {tool_count} TOOL:")
+                
+                # Salviamo l'intenzione dell'LLM nella cronologia
+                messages.append(msg)
+                
+                # Eseguiamo tutti i tool che ha richiesto
+                for i, tool_call in enumerate(msg.tool_calls, 1):
+                    tool_name = tool_call.function.name
+                    tool_args = json.loads(tool_call.function.arguments)
+                    print(f"\n   [{i}] 🛠️  Eseguo Tool: {tool_name}")
+                    print(f"       Argomenti: {tool_args}")
+                    
+                    # Chiama il server MCP
+                    result = self.call_mcp(tool_name, tool_args)
+                    print(f"       ✅ Risultato: {result}")
+                    
+                    # Salviamo il risultato del tool nella cronologia
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": tool_name,
+                        "content": json.dumps(result)
+                    })
+                
+                print("\n⏳ Re-invio i risultati all'LLM per decidere il prossimo step...")
+                # Il ciclo riparte! Ora l'LLM vedrà i dati e deciderà il prossimo tool da usare.
                 
             except Exception as e:
-                print(f"Error in final response: {e}")
-                return f"Errore finale: {e}"
-                
-        # Se non ci sono tool chiamati, restituisce il contenuto normale
-        return msg.content or "Nessun output generato."
+                print(f"\n❌ ERRORE NEL LOOP AGENTE: {e}")
+                return f"Errore: {e}"

@@ -16,6 +16,7 @@ TOPIC_SUB = f"comandi/{DRONE_ID}"
 # Coordinate base (es. HUB centrale)
 BASE_LAT = 0.0000
 BASE_LON = 0.0000
+RADIUS = 0.05
 
 class Drone:
     def __init__(self, drone_id):
@@ -35,14 +36,21 @@ class Drone:
         """Gestisce i comandi provenienti dal sistema centrale (MCP)"""
         try:
             data = json.loads(payload)
-            command = data.get("action")
+            
+            # FIX BUG 1: Forziamo la stringa in minuscolo (.lower()) così 
+            # ignoriamo se l'IA scrive "ASSIGN_MISSION" o "assign_mission"
+            command = data.get("action", "").lower()
             
             if command == "assign_mission" and self.state == "IDLE":
                 self.current_order = data.get("order_id")
-                self.target_lat = data.get("target_lat")
-                self.target_lon = data.get("target_lon")
+                
+                # FIX BUG 2: Se l'IA non manda le coordinate, ne generiamo di nuove
+                # in modo casuale entro il raggio (RADIUS)
+                self.target_lat = data.get("target_lat") or (BASE_LAT + random.uniform(-RADIUS, RADIUS))
+                self.target_lon = data.get("target_lon") or (BASE_LON + random.uniform(-RADIUS, RADIUS))
+                
                 self.state = "IN_DELIVERY"
-                print(f"[{self.id}] 🚀 Missione accettata: Ordine {self.current_order} verso [{self.target_lat}, {self.target_lon}]")
+                print(f"[{self.id}] 🚀 Missione accettata: Ordine {self.current_order} verso [{round(self.target_lat, 4)}, {round(self.target_lon, 4)}]")
                 
             elif command == "return_to_base":
                 self.target_lat = BASE_LAT
