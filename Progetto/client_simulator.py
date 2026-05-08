@@ -39,11 +39,11 @@ def generate_order():
     }
     return order
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, reasonCode, properties=None):
     print(f"[{CLIENT_ID}] 📱 Connesso al broker MQTT. Generazione ordini...")
 
 def run():
-    client = mqtt.Client(client_id=CLIENT_ID)
+    client = mqtt.Client(client_id=CLIENT_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
 
     while True:

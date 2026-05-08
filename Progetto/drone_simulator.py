@@ -30,7 +30,7 @@ class Drone:
         self.target_lat = None
         self.target_lon = None
         self.speed = 0.0002 # Spostamento in coordinate per "tick" (circa ~20-30 metri)
-        self.battery_drain = 0.1 # Consumo batteria per tick in movimento
+        self.battery_drain = 0.5 # Consumo batteria per tick in movimento
 
     def handle_command(self, payload):
         """Gestisce i comandi provenienti dal sistema centrale (MCP)"""
@@ -119,7 +119,7 @@ class Drone:
 # --- Gestione MQTT ---
 drone_instance = Drone(DRONE_ID)
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, reasonCode, properties=None):
     print(f"[{DRONE_ID}] 🔌 Connesso al broker MQTT. Sottoscrizione a: {TOPIC_SUB}")
     client.subscribe(TOPIC_SUB)
 
@@ -128,7 +128,7 @@ def on_message(client, userdata, msg):
     drone_instance.handle_command(payload)
 
 def run():
-    client = mqtt.Client(client_id=DRONE_ID)
+    client = mqtt.Client(client_id=DRONE_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
 

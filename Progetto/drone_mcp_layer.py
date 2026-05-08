@@ -44,7 +44,7 @@ class DroneMCP:
         self.influx_client = InfluxDBClient(url=self.influx_url, token=self.influx_token, org=self.influx_org)
 
         # 3. Setup MQTT
-        self.mqtt_broker = os.getenv("MQTT_BROKER", "mosquitto-service")
+        self.mqtt_broker = os.getenv("MQTT_BROKER", "localhost")
         self.mqtt_port = 1883
 
     def _log_action(self, action: str, payload: dict, source: str = "agent"):
