@@ -74,6 +74,10 @@ def main():
     print("\n6.5️⃣ Avvio port-forward per InfluxDB sulla porta locale 8086...")
     influx_proc = subprocess.Popen(["kubectl", "port-forward", "svc/influxdb-service", "8086:8086"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    # 6.6 Port-forward per MQTT broker (necessario per i client locali)
+    print("6.6️⃣ Avvio port-forward per MQTT broker sulla porta locale 1883...")
+    mqtt_proc = subprocess.Popen(["kubectl", "port-forward", "svc/mosquitto-service", "1883:1883"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     # 7. Avvio automatico dell'MCP server e del brain locale
     print("\n7️⃣ Avvio automatico dell'MCP server e del Logistic Brain...")
     logs_dir = os.path.join(project_root, "logs")
@@ -91,6 +95,7 @@ def main():
         f.write(f"{mcp_proc.pid}\n")
         f.write(f"{brain_proc.pid}\n")
         f.write(f"{influx_proc.pid}\n")
+        f.write(f"{mqtt_proc.pid}\n")
 
     print("\n✅ AMBIENTE BETA AVVIATO CON SUCCESSO!")
     print("👉 Comandi Utili:")
