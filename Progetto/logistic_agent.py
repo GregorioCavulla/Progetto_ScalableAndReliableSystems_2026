@@ -5,9 +5,11 @@ from openai import OpenAI
 
 # Prompt di sistema per il Logistic Agent
 SYSTEM_PROMPT = (
-    "Sei il LogisticAgent del sistema di droni. Il tuo compito è gestire gli ordini di consegna. "
-    "Leggi la coda ordini e la telemetria dei droni. "
-    "Scegli un drone in stato IDLE più vicino o adatto all'ordine. "
+    "Sei il LogisticAgent del sistema di droni. Il tuo compito è gestire gli ordini di consegna con ragionamenti complessi. "
+    "Leggi la coda ordini, lo stato dei droni e la loro telemetria. "
+    "Valuta la priorità degli ordini e lo stato dei droni (batteria, usura). "
+    "Se ci sono ordini ad alta priorità e droni con usura elevata (es. 60%), fai un ragionamento probabilistico per determinare quale missione sia meno rischiosa, valutando il trade-off tra priorità e rischio di fallimento. "
+    "Scegli il drone più adatto considerando distanza, stato e probabilità di successo. "
     "Invia un comando MQTT al drone selezionato per assegnare la missione. "
     "Usa i tool disponibili per leggere dati e inviare comandi."
 )
@@ -78,13 +80,21 @@ class LogisticAgent:
     def call_mcp(self, name, args):
         """Chiamata al server MCP con Token"""
         headers = {"X-MCP-Token": self.token}
-        resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers)
-        return resp.json().get("result", {})
+        try:
+            resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers, timeout=15)
+            
+            # Se la risposta non è un JSON valido (es. Flask ha restituito un errore 500 HTML)
+            try:
+                return resp.json().get("result", {})
+            except requests.exceptions.JSONDecodeError:
+                return {"error": f"Errore interno del server MCP. Risposta non JSON: HTTP {resp.status_code}"}
+                
+        except requests.exceptions.RequestException as e:
+            # Cattura problemi di rete, timeout, o server irraggiungibile
+            return {"error": f"Errore di rete o timeout contattando l'MCP: {str(e)}"}
 
     def run(self, orders_queue=None):
-        print("\n" + "="*80)
-        print("📦 LOGISTIC AGENT - INIZIO GESTIONE ORDINI")
-        print("="*80)
+        print("\n📦 LOGISTIC AGENT - GESTIONE ORDINI")
         
         # Se orders_queue non è fornito, istruiamo l'LLM a recuperarlo
         if orders_queue is None or len(orders_queue) == 0:
@@ -97,8 +107,7 @@ class LogisticAgent:
             {"role": "user", "content": user_message}
         ]
 
-    
-        print("\n⏳ Avvio loop di ragionamento LLM...")
+        print("⏳ Ragionamento in corso...")
         
         # QUESTO È IL CUORE DELL'AGENTE: Un loop che continua finché l'LLM non ha finito
         while True:
@@ -117,13 +126,12 @@ class LogisticAgent:
                     if final_content is None:
                         final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
                     
-                    print(f"\n📢 RISPOSTA FINALE DEL LLM:\n{final_content}")
-                    print(f"\n{'='*80}\n")
+                    print(f"📋 Rapporto Finale: {final_content}")
                     return final_content
                 
                 # 2. ESECUZIONE TOOL: L'LLM vuole raccogliere altri dati o eseguire azioni
                 tool_count = len(msg.tool_calls)
-                print(f"\n🔧 L'LLM VUOLE USARE {tool_count} TOOL:")
+                print(f"🔧 Uso {tool_count} tool per raccogliere dati...")
                 
                 # Salviamo l'intenzione dell'LLM nella cronologia
                 messages.append(msg)
@@ -132,12 +140,9 @@ class LogisticAgent:
                 for i, tool_call in enumerate(msg.tool_calls, 1):
                     tool_name = tool_call.function.name
                     tool_args = json.loads(tool_call.function.arguments)
-                    print(f"\n   [{i}] 🛠️  Eseguo Tool: {tool_name}")
-                    print(f"       Argomenti: {tool_args}")
                     
                     # Chiama il server MCP
                     result = self.call_mcp(tool_name, tool_args)
-                    print(f"       ✅ Risultato: {result}")
                     
                     # Salviamo il risultato del tool nella cronologia
                     messages.append({
@@ -147,9 +152,9 @@ class LogisticAgent:
                         "content": json.dumps(result)
                     })
                 
-                print("\n⏳ Re-invio i risultati all'LLM per decidere il prossimo step...")
+                print("⏳ Continuo ragionamento con nuovi dati...")
                 # Il ciclo riparte! Ora l'LLM vedrà i dati e deciderà il prossimo tool da usare.
                 
             except Exception as e:
-                print(f"\n❌ ERRORE NEL LOOP AGENTE: {e}")
+                print(f"❌ Errore: {e}")
                 return f"Errore: {e}"

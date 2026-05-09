@@ -5,12 +5,16 @@ from openai import OpenAI
 
 # Prompt di sistema per l'Health Agent
 SYSTEM_PROMPT = (
-    "Sei l'HealthAgent del sistema di droni. Il tuo compito è monitorare la salute della flotta di droni. "
-    "Puoi leggere lo stato dei droni e la loro telemetria da InfluxDB. "
+    "Sei l'HealthAgent del sistema di droni. Il tuo compito è monitorare la salute della flotta di droni e fornire raccomandazioni per un triage complesso delle missioni. "
+    "Puoi leggere lo stato dei droni, la loro telemetria da InfluxDB e gli ordini in sospeso. "
+    "Non controllare semplicemente se la batteria è sotto il 20%, ma usa ragionamenti complessi per valutare il rischio delle missioni. "
+    "Ad esempio, se ci sono ordini ad alta priorità e droni con usura elevata, valuta il trade-off e suggerisci quali missioni siano meno rischiose. "
     "Se rilevi droni in stato MAINTENANCE (batteria == 0 o usura elevata), "
     "devi scalare il numero di droni aggiungendone di nuovi per mantenere la flotta operativa. "
-    "Usa i tool disponibili per leggere dati e scalare l'infrastruttura. "
-    "Se devi scalare oltre il limite automatico, chiedi approvazione umana."
+    "Valuta il numero necessario di droni basandoti sulle condizioni attuali e sulla quantità di ordini pendenti. "
+    "Se il numero richiesto supera il limite automatico di 6 droni, richiedi esplicitamente l'approvazione umana usando request_human_approval e attendi una risposta controllando con check_pending_approvals. "
+    "Non procedere con lo scaling oltre il limite senza approvazione. "
+    "Usa i tool disponibili per leggere dati, accedere agli ordini, scalare e gestire approvazioni. "
 )
 
 class HealthAgent:
@@ -46,6 +50,14 @@ class HealthAgent:
             {
                 "type": "function",
                 "function": {
+                    "name": "get_pending_orders",
+                    "description": "Ottieni gli ordini in sospeso dal sistema.",
+                    "parameters": {"type": "object", "properties": {}}
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "scale_drone_deployment",
                     "description": "Scala il numero di droni su Kubernetes.",
                     "parameters": {
@@ -68,19 +80,35 @@ class HealthAgent:
                         }
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "check_pending_approvals",
+                    "description": "Controlla lo stato delle richieste di approvazione umana pendenti.",
+                    "parameters": {"type": "object", "properties": {}}
+                }
             }
         ]
 
     def call_mcp(self, name, args):
         """Chiamata al server MCP con Token"""
         headers = {"X-MCP-Token": self.token}
-        resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers)
-        return resp.json().get("result", {})
+        try:
+            resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers, timeout=15)
+            
+            # Se la risposta non è un JSON valido (es. Flask ha restituito un errore 500 HTML)
+            try:
+                return resp.json().get("result", {})
+            except requests.exceptions.JSONDecodeError:
+                return {"error": f"Errore interno del server MCP. Risposta non JSON: HTTP {resp.status_code}"}
+                
+        except requests.exceptions.RequestException as e:
+            # Cattura problemi di rete, timeout, o server irraggiungibile
+            return {"error": f"Errore di rete o timeout contattando l'MCP: {str(e)}"}
 
     def run(self):
-        print("\n" + "="*80)
-        print("🏥 HEALTH AGENT - INIZIO CICLO DI MONITORAGGIO")
-        print("="*80)
+        print("\n🏥 HEALTH AGENT - MONITORAGGIO SALUTE FLOTTA")
         
         user_message = "Controlla la salute della flotta di droni e prendi azioni correttive se necessario."
         messages = [
@@ -89,7 +117,7 @@ class HealthAgent:
         ]
 
     
-        print("\n⏳ Avvio loop di ragionamento LLM...")
+        print("⏳ Ragionamento in corso...")
         
         # QUESTO È IL CUORE DELL'AGENTE: Un loop che continua finché l'LLM non ha finito
         while True:
@@ -108,13 +136,12 @@ class HealthAgent:
                     if final_content is None:
                         final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
                     
-                    print(f"\n📢 RISPOSTA FINALE DEL LLM:\n{final_content}")
-                    print(f"\n{'='*80}\n")
+                    print(f"📋 Rapporto Finale: {final_content}")
                     return final_content
                 
                 # 2. ESECUZIONE TOOL: L'LLM vuole raccogliere altri dati o eseguire azioni
                 tool_count = len(msg.tool_calls)
-                print(f"\n🔧 L'LLM VUOLE USARE {tool_count} TOOL:")
+                print(f"🔧 Uso {tool_count} tool per raccogliere dati...")
                 
                 # Salviamo l'intenzione dell'LLM nella cronologia
                 messages.append(msg)
@@ -123,12 +150,9 @@ class HealthAgent:
                 for i, tool_call in enumerate(msg.tool_calls, 1):
                     tool_name = tool_call.function.name
                     tool_args = json.loads(tool_call.function.arguments)
-                    print(f"\n   [{i}] 🛠️  Eseguo Tool: {tool_name}")
-                    print(f"       Argomenti: {tool_args}")
                     
                     # Chiama il server MCP
                     result = self.call_mcp(tool_name, tool_args)
-                    print(f"       ✅ Risultato: {result}")
                     
                     # Salviamo il risultato del tool nella cronologia
                     messages.append({
@@ -138,9 +162,9 @@ class HealthAgent:
                         "content": json.dumps(result)
                     })
                 
-                print("\n⏳ Re-invio i risultati all'LLM per decidere il prossimo step...")
+                print("⏳ Continuo ragionamento con nuovi dati...")
                 # Il ciclo riparte! Ora l'LLM vedrà i dati e deciderà il prossimo tool da usare.
                 
             except Exception as e:
-                print(f"\n❌ ERRORE NEL LOOP AGENTE: {e}")
+                print(f"❌ Errore: {e}")
                 return f"Errore: {e}"

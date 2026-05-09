@@ -43,6 +43,10 @@ def execute_tool():
         result = mcp.request_human_approval(**args)
         print(f"MCP: request_human_approval -> {result}")
         return jsonify({"result": result})
+    elif name == "check_pending_approvals":
+        result = mcp.check_pending_approvals()
+        print(f"MCP: check_pending_approvals -> {result}")
+        return jsonify({"result": result})
     
     return jsonify({"error": "tool not found"}), 404
 
