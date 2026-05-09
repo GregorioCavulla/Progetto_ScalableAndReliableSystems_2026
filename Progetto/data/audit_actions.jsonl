@@ -18,3 +18,27 @@
 {"timestamp": 1778255440, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-5hfpz", "action": "assign_mission", "kwargs": {"order_id": "ORD-02830187"}}, "source": "agent"}
 {"timestamp": 1778255440, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-ldnsz", "action": "assign_mission", "kwargs": {"order_id": "ORD-588D8934"}}, "source": "agent"}
 {"timestamp": 1778255440, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-qgrng", "action": "assign_mission", "kwargs": {"order_id": "ORD-0D149C1B"}}, "source": "agent"}
+{"timestamp": 1778324856, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-497r4", "action": "delivery", "kwargs": {"order_id": "ORD-0D756DCF"}}, "source": "agent"}
+{"timestamp": 1778324907, "action": "scale_deployment", "payload": {"replicas": 5}, "source": "agent"}
+{"timestamp": 1778324937, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-497r4", "action": "assign_mission", "kwargs": {"order_id": "ORD-EC15B556"}}, "source": "agent"}
+{"timestamp": 1778324943, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-d2zrf", "action": "assign_mission", "kwargs": {"order_id": "ORD-0D756DCF"}}, "source": "agent"}
+{"timestamp": 1778324948, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-wjq26", "action": "assign_mission", "kwargs": {"order_id": "ORD-1E014262"}}, "source": "agent"}
+{"timestamp": 1778324952, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-wwrwf", "action": "assign_mission", "kwargs": {"order_id": "ORD-3855C31A"}}, "source": "agent"}
+{"timestamp": 1778324956, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-zjrbd", "action": "assign_mission", "kwargs": {"order_id": "ORD-743F75B7"}}, "source": "agent"}
+{"timestamp": 1778325007, "action": "scale_deployment", "payload": {"replicas": 6}, "source": "agent"}
+{"timestamp": 1778325033, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-jlxvz", "action": "delivery", "kwargs": {"order_id": "ORD-EC15B556"}}, "source": "agent"}
+{"timestamp": 1778325093, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-jlxvz", "action": "START_MISSION", "kwargs": {"order_id": "ORD-A598162F"}}, "source": "agent"}
+{"timestamp": 1778325098, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-jlxvz", "action": "START_MISSION", "kwargs": {"order_id": "ORD-EC15B556"}}, "source": "agent"}
+{"timestamp": 1778325173, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-jlxvz", "action": "start_mission", "kwargs": {"order_id": "ORD-A598162F"}}, "source": "agent"}
+{"timestamp": 1778325182, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-jlxvz", "action": "start_mission", "kwargs": {"order_id": "ORD-EC15B556"}}, "source": "agent"}
+{"timestamp": 1778325271, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-jlxvz", "action": "assign_mission", "kwargs": {"order_id": "ORD-EC15B556"}}, "source": "agent"}
+{"timestamp": 1778340094, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-g5dcq", "action": "DELIVER", "kwargs": {"order_id": "ORD-74887275"}}, "source": "agent"}
+{"timestamp": 1778340098, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-hd4p6", "action": "DELIVER", "kwargs": {"order_id": "ORD-6B1C969A"}}, "source": "agent"}
+{"timestamp": 1778340100, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-schq8", "action": "DELIVER", "kwargs": {"order_id": "ORD-9DAF1091"}}, "source": "agent"}
+{"timestamp": 1778340152, "action": "scale_deployment", "payload": {"replicas": 6}, "source": "agent"}
+{"timestamp": 1778340183, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-bwp4j", "action": "assign_mission", "kwargs": {"order_id": "ORD-74887275"}}, "source": "agent"}
+{"timestamp": 1778340187, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-g5dcq", "action": "assign_mission", "kwargs": {"order_id": "ORD-4F78DCC2"}}, "source": "agent"}
+{"timestamp": 1778340189, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-hbw9j", "action": "assign_mission", "kwargs": {"order_id": "ORD-6B1C969A"}}, "source": "agent"}
+{"timestamp": 1778340191, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-hd4p6", "action": "assign_mission", "kwargs": {"order_id": "ORD-9DAF1091"}}, "source": "agent"}
+{"timestamp": 1778340195, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-schq8", "action": "assign_mission", "kwargs": {"order_id": "ORD-9DDE2337"}}, "source": "agent"}
+{"timestamp": 1778340197, "action": "send_mqtt_command", "payload": {"target": "drone-simulator-546cc89b6-zrxk8", "action": "assign_mission", "kwargs": {"order_id": "ORD-AF3B0870"}}, "source": "agent"}

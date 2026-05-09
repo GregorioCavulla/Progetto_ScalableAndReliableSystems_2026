@@ -29,8 +29,8 @@ class Drone:
         self.current_order = None
         self.target_lat = None
         self.target_lon = None
-        self.speed = 0.0002 # Spostamento in coordinate per "tick" (circa ~20-30 metri)
-        self.battery_drain = 0.5 # Consumo batteria per tick in movimento
+        self.speed = 0.001 # Spostamento in coordinate per "tick" (circa ~20-30 metri)
+        self.battery_drain = 1 # Consumo batteria per tick in movimento
 
     def handle_command(self, payload):
         """Gestisce i comandi provenienti dal sistema centrale (MCP)"""

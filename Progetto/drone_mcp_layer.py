@@ -237,3 +237,23 @@ class DroneMCP:
             
         self._log_action("request_human_approval", entry)
         return {"status": "pending_approval", "request_id": request_id, "message": "Richiesta inviata all'operatore umano."}
+
+    def check_pending_approvals(self) -> dict:
+        """Controlla se ci sono approvazioni umane pendenti o approvate"""
+        if not self.approvals_file.exists():
+            return {"pending": [], "approved": []}
+        
+        pending = []
+        approved = []
+        try:
+            with open(self.approvals_file, "r") as f:
+                for line in f:
+                    entry = json.loads(line.strip())
+                    if entry["status"] == "pending":
+                        pending.append(entry)
+                    elif entry["status"] == "approved":
+                        approved.append(entry)
+        except Exception as e:
+            return {"error": str(e)}
+        
+        return {"pending": pending, "approved": approved}

@@ -1,6 +1,8 @@
 import os
 import time
 import json
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 from openai import OpenAI
 from health_agent import HealthAgent
 from logistic_agent import LogisticAgent
@@ -40,8 +42,6 @@ def run_agent_loop():
     
     while True:
         try:
-            print("\n[AI] 🧐 Monitoraggio salute flotta...")
-            
             # Esecuzione Health Agent
             try:
                 health_report = health_agent.run()
@@ -50,7 +50,6 @@ def run_agent_loop():
                 print(f"❌ Errore Health Agent: {e}")
             
             # Gestione ordini - l'agente leggerà da InfluxDB via tool get_pending_orders
-            print("[AI] 📦 Gestione ordini...")
             try:
                 logistic_report = logistic_agent.run()
                 print(f"✅ Logistica: {logistic_report}")
