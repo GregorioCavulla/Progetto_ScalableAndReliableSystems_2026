@@ -6,14 +6,14 @@ import subprocess
 
 def run_command(command, allow_failure=False):
     """Esegue un comando shell e gestisce gli errori."""
-    print(f"🔄 Esecuzione: {command}")
+    print(f" Esecuzione: {command}")
     try:
         subprocess.run(command, shell=True, check=True)
     except subprocess.CalledProcessError as e:
         if not allow_failure:
-            print(f"❌ Errore durante l'esecuzione: {command}")
+            print(f" Errore durante l'esecuzione: {command}")
         else:
-            print(f"⚠️ Avviso ignorato durante: {command}")
+            print(f"️ Avviso ignorato durante: {command}")
 
 
 def kill_agent_processes():
@@ -21,7 +21,7 @@ def kill_agent_processes():
     pid_file = os.path.join(project_root, 'agent_pids.txt')
 
     if os.path.exists(pid_file):
-        print("🔧 Arresto dei processi agent registrati...")
+        print(" Arresto dei processi agent registrati...")
         with open(pid_file, 'r') as f:
             for line in f:
                 try:
@@ -40,7 +40,7 @@ def kill_agent_processes():
         run_command('pkill -f logistic_ai_brain.py', allow_failure=True)
 
 def main():
-    print("🛑 --- SPEGNIMENTO AMBIENTE BETA (DRONE SYSTEM) --- 🛑\n")
+    print(" --- SPEGNIMENTO AMBIENTE BETA (DRONE SYSTEM) --- \n")
 
     # 0. Arresto dei processi agent locali
     print("0️⃣ Arresto dei processi MCP/AI locali...")
@@ -61,7 +61,7 @@ def main():
     except Exception:
         pass
 
-    print("\n✅ AMBIENTE BETA TERMINATO. Risorse di sistema liberate con successo.")
+    print("\n AMBIENTE BETA TERMINATO. Risorse di sistema liberate con successo.")
 
 if __name__ == "__main__":
     main()

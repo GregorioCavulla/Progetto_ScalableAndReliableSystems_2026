@@ -89,7 +89,7 @@ def chiama_mcp(name, args):
         return {"error": f"Errore di connessione a {url}: {e}"}
 
 def interpella_agente(client, history):
-    print("\n⏳ [L'Agente sta elaborando la richiesta...]")
+    print("\n [L'Agente sta elaborando la richiesta...]")
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=history,
@@ -100,12 +100,12 @@ def interpella_agente(client, history):
     
     while msg.tool_calls:
         for tool_call in msg.tool_calls:
-            print(f"🛠️ [TOOL] L'Agente ha deciso di chiamare: {tool_call.function.name}({tool_call.function.arguments})")
+            print(f"️ [TOOL] L'Agente ha deciso di chiamare: {tool_call.function.name}({tool_call.function.arguments})")
             
             # Esecuzione Tool
             args = json.loads(tool_call.function.arguments)
             risultato = chiama_mcp(tool_call.function.name, args)
-            print(f"📡 [RISPOSTA TOOL]: {json.dumps(risultato, indent=2)}")
+            print(f" [RISPOSTA TOOL]: {json.dumps(risultato, indent=2)}")
             
             history.append(msg)
             history.append({
@@ -115,7 +115,7 @@ def interpella_agente(client, history):
                 "content": json.dumps(risultato)
             })
             
-        print("\n⏳ [L'Agente sta valutando il risultato e generando la risposta finale...]")
+        print("\n [L'Agente sta valutando il risultato e generando la risposta finale...]")
         # Nuovo step di reasoning
         response = client.chat.completions.create(
             model=MODEL_NAME,
@@ -129,12 +129,12 @@ def interpella_agente(client, history):
 
 def avvia_pannello_ai():
     print("==================================================")
-    print("   🤖  PANNELLO KUBERNETES IoT - GUIDATO DA GROQ  ")
+    print("     PANNELLO KUBERNETES IoT - GUIDATO DA GROQ  ")
     print("==================================================")
     
     # Avvisa se la API key non è stata impostata
     if not GROQ_API_KEY:
-        print("⚠️ ATTENZIONE: Imposta la variabile d'ambiente GROQ_API_KEY prima di usare il pannello.")
+        print("️ ATTENZIONE: Imposta la variabile d'ambiente GROQ_API_KEY prima di usare il pannello.")
 
     client = OpenAI(api_key=GROQ_API_KEY or None, base_url=GROQ_BASE_URL)
     history = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -143,10 +143,10 @@ def avvia_pannello_ai():
     print("Digita 'esci' o 'exit' per chiudere.")
     
     while True:
-        prompt = input("\n👤 Tu: ")
+        prompt = input("\n Tu: ")
         
         if prompt.lower() in ['esci', 'exit', 'quit', '0']:
-            print("👋 Uscita dal Pannello AI.")
+            print(" Uscita dal Pannello AI.")
             break
             
         if not prompt.strip():
@@ -157,10 +157,10 @@ def avvia_pannello_ai():
         try:
             risposta = interpella_agente(client, history)
             print("--------------------------------------------------")
-            print(f"🤖 Agente: {risposta}")
+            print(f" Agente: {risposta}")
             print("--------------------------------------------------")
         except Exception as e:
-            print(f"\n❌ [ERRORE DI COMUNICAZIONE Groq]: {e}")
+            print(f"\n [ERRORE DI COMUNICAZIONE Groq]: {e}")
             history.pop() # Rimuovi l'ultimo prompt problematico
 
 if __name__ == "__main__":

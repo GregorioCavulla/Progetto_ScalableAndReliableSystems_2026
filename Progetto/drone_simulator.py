@@ -31,6 +31,7 @@ class Drone:
         self.target_lon = None
         self.speed = 0.001 # Spostamento in coordinate per "tick" (circa ~20-30 metri)
         self.battery_drain = 1 # Consumo batteria per tick in movimento
+        # TODO: aggiungere scarica batteria e wear in base al peso dell'ordine e alla distanza percorsa
 
     def handle_command(self, payload):
         """Gestisce i comandi provenienti dal sistema centrale (MCP)"""
@@ -50,17 +51,17 @@ class Drone:
                 self.target_lon = data.get("target_lon") or (BASE_LON + random.uniform(-RADIUS, RADIUS))
                 
                 self.state = "IN_DELIVERY"
-                print(f"[{self.id}] 🚀 Missione accettata: Ordine {self.current_order} verso [{round(self.target_lat, 4)}, {round(self.target_lon, 4)}]")
+                print(f"[{self.id}]  Missione accettata: Ordine {self.current_order} verso [{round(self.target_lat, 4)}, {round(self.target_lon, 4)}]")
                 
             elif command == "return_to_base":
                 self.target_lat = BASE_LAT
                 self.target_lon = BASE_LON
                 self.state = "RETURNING"
                 self.current_order = None
-                print(f"[{self.id}] 🔄 Richiamo d'emergenza, ritorno alla base.")
+                print(f"[{self.id}]  Richiamo d'emergenza, ritorno alla base.")
                 
         except Exception as e:
-            print(f"[{self.id}] ❌ Errore parsing comando: {e}")
+            print(f"[{self.id}]  Errore parsing comando: {e}")
 
     def update(self):
         """Evolve lo stato interno del drone ad ogni ciclo di clock (tick)"""
@@ -78,13 +79,13 @@ class Drone:
                     self.lon = self.target_lon
                     
                     if self.state == "IN_DELIVERY":
-                        print(f"[{self.id}] ✅ Consegna {self.current_order} completata. Torno alla base HUB.")
+                        print(f"[{self.id}]  Consegna {self.current_order} completata. Torno alla base HUB.")
                         self.state = "RETURNING"
                         self.current_order = None
                         self.target_lat = BASE_LAT
                         self.target_lon = BASE_LON
                     else:
-                        print(f"[{self.id}] 🛬 Tornato all'HUB. In ricarica e attesa.")
+                        print(f"[{self.id}]  Tornato all'HUB. In ricarica e attesa.")
                         self.state = "IDLE"
                         self.target_lat = None
                         self.target_lon = None
@@ -102,7 +103,7 @@ class Drone:
         # Controllo usura
         if self.wear > 10.0 and self.state != "MAINTENANCE":
             self.state = "MAINTENANCE"
-            print(f"[{self.id}] ⚠️ USURA ELEVATA - Drone in manutenzione.")
+            print(f"[{self.id}] ️ USURA ELEVATA - Drone in manutenzione.")
 
     def get_telemetry(self):
         return {
@@ -120,7 +121,7 @@ class Drone:
 drone_instance = Drone(DRONE_ID)
 
 def on_connect(client, userdata, flags, reasonCode, properties=None):
-    print(f"[{DRONE_ID}] 🔌 Connesso al broker MQTT. Sottoscrizione a: {TOPIC_SUB}")
+    print(f"[{DRONE_ID}]  Connesso al broker MQTT. Sottoscrizione a: {TOPIC_SUB}")
     client.subscribe(TOPIC_SUB)
 
 def on_message(client, userdata, msg):
@@ -151,7 +152,7 @@ def run():
             client.publish(TOPIC_PUB, json.dumps(telemetry))
             
             # Stampa di cortesia solo se rientra in log limitato
-            print(f"📡 Telemetria [{drone_instance.state}] | Batt: {round(drone_instance.battery)}% | Pos: {telemetry['lat']},{telemetry['lon']}")
+            print(f" Telemetria [{drone_instance.state}] | Batt: {round(drone_instance.battery)}% | Pos: {telemetry['lat']},{telemetry['lon']}")
             time.sleep(2.0)  # Frequenza generatore IoT (1 tick ogni 2 secondi)
     except KeyboardInterrupt:
         print(f"[{DRONE_ID}] Spegnimento forzato...")

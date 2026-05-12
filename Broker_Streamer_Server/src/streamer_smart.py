@@ -15,7 +15,7 @@ pod_name = os.getenv("POD_NAME", f"smart-{random.randint(0, 100)}") # Se non c'Ã
 # Funzione che scatta quando RICEVIAMO un messaggio
 def on_message(client, userdata, message):
     comando = message.payload.decode("utf-8")
-    print(f"\nðŸ”” [{pod_name}] RICEVUTO COMANDO su {message.topic}: {comando}\n")
+    print(f"\n [{pod_name}] RICEVUTO COMANDO su {message.topic}: {comando}\n")
 
 # Funzione che scatta appena ci CONNETTIAMO (serve per iscriversi subito)
 def on_connect(client, userdata, flags, reason_code, properties):

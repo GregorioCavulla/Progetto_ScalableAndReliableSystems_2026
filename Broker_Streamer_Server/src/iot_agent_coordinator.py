@@ -18,7 +18,7 @@ OPERATIONS_TOKEN = os.getenv("OPERATIONS_TOKEN", "REDACTED_MCP_TOKEN")
 
 def main():
     print("==================================================")
-    print("   🚀 IOT AGENTIC SYSTEM - COORDINATOR (GROQ)    ")
+    print("    IOT AGENTIC SYSTEM - COORDINATOR (GROQ)    ")
     print("==================================================")
 
     # 1. Inizializzazione dell'Observer Agent
@@ -34,9 +34,9 @@ def main():
     print("[2/3] Fase di Osservazione: Analisi telemetria e cluster...")
     try:
         diagnosi = observer.run()
-        print(f"\n📢 REPORT DI DIAGNOSI:\n{'-'*30}\n{diagnosi}\n{'-'*30}")
+        print(f"\n REPORT DI DIAGNOSI:\n{'-'*30}\n{diagnosi}\n{'-'*30}")
     except Exception as e:
-        print(f"❌ Errore durante l'osservazione: {e}")
+        print(f" Errore durante l'osservazione: {e}")
         sys.exit(1)
 
     # 3. Inizializzazione e Esecuzione del Remediation Agent
@@ -52,9 +52,9 @@ def main():
     print("Esecuzione Azioni Correttive basate sulla diagnosi...")
     try:
         risultato_azione = remediator.run(diagnosi)
-        print(f"\n✅ RISULTATO OPERAZIONI:\n{'-'*30}\n{risultato_azione}\n{'-'*30}")
+        print(f"\n RISULTATO OPERAZIONI:\n{'-'*30}\n{risultato_azione}\n{'-'*30}")
     except Exception as e:
-        print(f"❌ Errore durante la remediation: {e}")
+        print(f" Errore durante la remediation: {e}")
         sys.exit(1)
 
     print("\n==================================================")
@@ -64,6 +64,6 @@ def main():
 if __name__ == "__main__":
     # Verifica che la chiave sia stata inserita
     if not GROQ_API_KEY:
-        print("❌ ERRORE: Inserisci la tua API KEY di Groq nella variabile d'ambiente GROQ_API_KEY.")
+        print(" ERRORE: Inserisci la tua API KEY di Groq nella variabile d'ambiente GROQ_API_KEY.")
     else:
         main()

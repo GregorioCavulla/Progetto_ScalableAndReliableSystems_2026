@@ -268,13 +268,13 @@ def record_assignment(topic, payload):
                 if order_id:
                     state["assignments"][drone_id] = order_id
                     state["pending_orders"] = [o for o in state["pending_orders"] if o.get("order_id") != order_id]
-                    print(f"📤 Ordine {order_id} assegnato a {drone_id}")
+                    print(f" Ordine {order_id} assegnato a {drone_id}")
         except Exception as e:
-            print(f"❌ Errore record assignment: {e}")
+            print(f" Errore record assignment: {e}")
 
 
 def on_connect(client, userdata, flags, reasonCode, properties=None):
-    print(f"🧠 [Server Centrale] Connesso al Broker MQTT. Ascolto su telemetria, ordini e comandi.")
+    print(f" [Server Centrale] Connesso al Broker MQTT. Ascolto su telemetria, ordini e comandi.")
     client.subscribe(TOPIC_TELEMETRY)
     client.subscribe(TOPIC_ORDINI)
     client.subscribe(TOPIC_COMMANDS)
@@ -304,7 +304,7 @@ def on_message(client, userdata, message, properties=None):
                         "drone_id": drone_id,
                         "timestamp": int(time.time())
                     })
-                    print(f"✅ Ordine {assigned_order} consegnato da {drone_id}")
+                    print(f" Ordine {assigned_order} consegnato da {drone_id}")
 
             point = (
                 Point("drone_telemetry")
@@ -320,7 +320,7 @@ def on_message(client, userdata, message, properties=None):
         elif topic == TOPIC_ORDINI:
             order_id = payload.get("order_id")
             state["pending_orders"].append(payload)
-            print(f"📥 [Server Centrale] Registrato Ordine {order_id} in coda (Totale pending: {len(state['pending_orders'])})")
+            print(f" [Server Centrale] Registrato Ordine {order_id} in coda (Totale pending: {len(state['pending_orders'])})")
             point = (
                 Point("business_orders")
                 .tag("order_id", order_id)
@@ -330,16 +330,16 @@ def on_message(client, userdata, message, properties=None):
             write_api.write(bucket=INFLUX_BUCKET, record=point)
 
     except Exception as e:
-        print(f"❌ Errore processamento messaggio: {e}")
+        print(f" Errore processamento messaggio: {e}")
 
 def connect_mqtt(client):
     hosts = [BROKER] + [h for h in ["localhost", "mqtt-broker", "mosquitto-service"] if h != BROKER]
     last_error = None
     for host in hosts:
         try:
-            print(f"🔌 Provo broker MQTT {host}:{PORT}")
+            print(f" Provo broker MQTT {host}:{PORT}")
             client.connect(host, PORT, 60)
-            print(f"✅ Connesso broker MQTT su {host}:{PORT}")
+            print(f" Connesso broker MQTT su {host}:{PORT}")
             return host
         except Exception as e:
             print(f"Connessione fallita a {host}:{PORT}: {e}")
@@ -364,13 +364,13 @@ def run():
     client.loop_start()
 
     try:
-        print(f"🧠 [Server Centrale] In elaborazione continua in background... (dashboard su http://{FLASK_HOST}:{FLASK_PORT})")
+        print(f" [Server Centrale] In elaborazione continua in background... (dashboard su http://{FLASK_HOST}:{FLASK_PORT})")
         while True:
             time.sleep(15)
             print(f"\n--- SNAPSHOT SISTEMA ---")
-            print(f"🚁 Droni tracciati: {len(state['drones'])}")
-            print(f"📦 Ordini pendenti: {len(state['pending_orders'])}")
-            print(f"✅ Consegne completate: {len(state['completed_orders'])}")
+            print(f" Droni tracciati: {len(state['drones'])}")
+            print(f" Ordini pendenti: {len(state['pending_orders'])}")
+            print(f" Consegne completate: {len(state['completed_orders'])}")
             print("------------------------\n")
     except KeyboardInterrupt:
         print("Spegnimento server...")
