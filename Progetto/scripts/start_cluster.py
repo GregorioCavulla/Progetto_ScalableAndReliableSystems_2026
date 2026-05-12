@@ -82,7 +82,7 @@ def main():
 
     # 6.7 Port-forward per Flask Dashboard (Server Centrale)
     print("6.7️⃣ Avvio port-forward per la Dashboard del Server Centrale sulla porta locale 5000...")
-    flask_proc = subprocess.Popen(["kubectl", "port-forward", "deployment/central-server", "5000:5000"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    flask_proc = subprocess.Popen(["kubectl", "port-forward", "svc/central-server-service", "5000:5000"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # 6.8 Port-forward per Shield (Human Approval)
     print("6.8️⃣ Avvio port-forward per Human Approval Shield sulla porta locale 5002...")

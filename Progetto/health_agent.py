@@ -80,8 +80,10 @@ class HealthAgent:
                         "type": "object",
                         "properties": {
                             "action_type": {"type": "string"},
-                            "reason": {"type": "string"}
-                        }
+                            "reason": {"type": "string"},
+                            "payload": {"type": "object"}
+                        },
+                        "required": ["action_type", "reason"]
                     }
                 }
             },

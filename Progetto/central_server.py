@@ -258,7 +258,6 @@ def api_status():
         "connected": True
     })
 
-
 def record_assignment(topic, payload):
     if topic.startswith("comandi/"):
         try:

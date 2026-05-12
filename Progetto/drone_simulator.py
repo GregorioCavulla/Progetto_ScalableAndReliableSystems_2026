@@ -67,7 +67,7 @@ class Drone:
         """Evolve lo stato interno del drone ad ogni ciclo di clock (tick)"""
         # Se in volo verso un obiettivo
         if self.state in ["IN_DELIVERY", "RETURNING"]:
-            if self.target_lat and self.target_lon:
+            if self.target_lat is not None and self.target_lon is not None:
                 # Calcolo vettore spostamento
                 d_lat = self.target_lat - self.lat
                 d_lon = self.target_lon - self.lon
