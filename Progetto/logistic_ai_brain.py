@@ -9,7 +9,7 @@ from logistic_agent import LogisticAgent
 
 # --- CONFIGURAZIONE LLM ---
 API_BASE = "https://litellm-proxy-1013932759942.europe-west8.run.app/v1"
-API_KEY = os.getenv("OPENAI_API_KEY", "")
+API_KEY = os.getenv("OPENAI_API_KEY", "sk-BI1ty8WHJ-PBrVP5_ElhZA")
 MODEL_NAME = "gemini-2.5-pro"
 
 # MCP Config
