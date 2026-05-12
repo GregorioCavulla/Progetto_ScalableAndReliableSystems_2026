@@ -6,7 +6,7 @@
         "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
     },
     "containerEnv": {
-        "OPENAI_API_KEY": "chiave_qui"
+        "OPENAI_API_KEY": "sk-BI1ty8WHJ-PBrVP5_ElhZA"
     },
     "postCreateCommand": "curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind && pip install paho-mqtt influxdb-client",
     "customizations": {

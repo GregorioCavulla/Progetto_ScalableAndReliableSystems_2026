@@ -30,3 +30,5 @@ spec:
           value: "laboratorio"
         - name: INFLUX_BUCKET
           value: "iot_data"
+        ports:
+        - containerPort: 5000

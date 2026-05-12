@@ -65,10 +65,12 @@ def main():
     run_command("kubectl apply -f configs/")
 
     # 6. Wait (Opzionale: attende che il broker sia pronto)
-    print("\n⏳ Attesa dei pod vitali (Mosquitto & InfluxDB)...")
+    print("\n⏳ Attesa dei pod vitali (Mosquitto, InfluxDB, MCP-Server, AI-Brain)...")
     time.sleep(5) # Piccola pausa per permettere al cluster di registrare i container
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/mosquitto || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true", allow_failure=True)
+    run_command("kubectl wait --for=condition=available --timeout=120s deployment/mcp-server || true", allow_failure=True)
+    run_command("kubectl wait --for=condition=available --timeout=120s deployment/logistic-ai-brain || true", allow_failure=True)
 
     # 6.5 Port-forward per InfluxDB (necessario per accesso locale)
     print("\n6.5️⃣ Avvio port-forward per InfluxDB sulla porta locale 8086...")
@@ -78,33 +80,28 @@ def main():
     print("6.6️⃣ Avvio port-forward per MQTT broker sulla porta locale 1883...")
     mqtt_proc = subprocess.Popen(["kubectl", "port-forward", "svc/mosquitto-service", "1883:1883"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # 7. Avvio automatico dell'MCP server e del brain locale
-    print("\n7️⃣ Avvio automatico dell'MCP server e del Logistic Brain...")
-    logs_dir = os.path.join(project_root, "logs")
-    os.makedirs(logs_dir, exist_ok=True)
+    # 6.7 Port-forward per Flask Dashboard (Server Centrale)
+    print("6.7️⃣ Avvio port-forward per la Dashboard del Server Centrale sulla porta locale 5000...")
+    flask_proc = subprocess.Popen(["kubectl", "port-forward", "deployment/central-server", "5000:5000"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    mcp_log_path = os.path.join(logs_dir, "mcp_server.log")
-    brain_log_path = os.path.join(logs_dir, "logistic_ai_brain.log")
+    # 7. Registrazione processi in background
+    print("\n7️⃣ Registrazione dei port-forward nel file PID...")
     pid_file = os.path.join(project_root, "agent_pids.txt")
 
-    with open(mcp_log_path, "a") as mcp_log, open(brain_log_path, "a") as brain_log:
-        mcp_proc = subprocess.Popen([sys.executable, os.path.join(project_root, "mcp_server.py")], stdout=mcp_log, stderr=mcp_log)
-        brain_proc = subprocess.Popen([sys.executable, os.path.join(project_root, "logistic_ai_brain.py")], stdout=brain_log, stderr=brain_log)
-
     with open(pid_file, "w") as f:
-        f.write(f"{mcp_proc.pid}\n")
-        f.write(f"{brain_proc.pid}\n")
         f.write(f"{influx_proc.pid}\n")
         f.write(f"{mqtt_proc.pid}\n")
+        f.write(f"{flask_proc.pid}\n")
 
     print("\n✅ AMBIENTE BETA AVVIATO CON SUCCESSO!")
-    print("👉 Comandi Utili:")
+    print("👉 Comandi Utili e Link:")
+    print("   🌐 Dashboard Server:       http://localhost:5000")
     print("   Visualizza i pod:          kubectl get pods")
     print("   Visualizza log droni:      kubectl logs -f -l app=drone-simulator")
     print("   Visualizza log ordini:     kubectl logs -f -l app=client-simulator")
     print("   Visualizza log server:     kubectl logs -f -l app=central-server")
-    print("   Visualizza log MCP:        tail -f logs/mcp_server.log")
-    print("   Visualizza log Agent:      tail -f logs/logistic_ai_brain.log")
+    print("   Visualizza log MCP:        kubectl logs -f deployment/mcp-server")
+    print("   Visualizza log AI Brain:   kubectl logs -f deployment/logistic-ai-brain")
 
 if __name__ == "__main__":
     main()
