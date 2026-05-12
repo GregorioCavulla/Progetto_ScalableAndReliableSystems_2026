@@ -31,7 +31,7 @@ class DroneMCP:
             try:
                 config.load_kube_config() # Fallback: usa config locale per test
             except Exception as e:
-                print(f"⚠️ Avviso K8s: Impossibile caricare configurazione ({e})")
+                print(f"️ Avviso K8s: Impossibile caricare configurazione ({e})")
         
         self.k8s_apps = client.AppsV1Api()
         self.k8s_core = client.CoreV1Api()
@@ -59,7 +59,7 @@ class DroneMCP:
             f.write(json.dumps(entry) + "\n")
 
     # ==========================================
-    # 👁️ FUNZIONI PER L'OBSERVER MCP (Read-Only)
+    # ️ FUNZIONI PER L'OBSERVER MCP (Read-Only)
     # ==========================================
 
     def get_drones_status(self) -> dict:
@@ -174,7 +174,7 @@ class DroneMCP:
             return {"error": str(e), "total_pending": 0, "orders": []}
 
     # ==========================================
-    # 🛠️ FUNZIONI PER L'ACTION MCP (Write)
+    # ️ FUNZIONI PER L'ACTION MCP (Write)
     # ==========================================
 
     def send_mqtt_command(self, target: str, action: str, **kwargs) -> dict:

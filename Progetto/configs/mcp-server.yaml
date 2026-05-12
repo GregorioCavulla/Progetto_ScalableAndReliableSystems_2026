@@ -45,11 +45,17 @@ spec:
         app: mcp-server
     spec:
       serviceAccountName: mcp-server-sa
+      volumes:
+      - name: mcp-data
+        emptyDir: {}
       containers:
       - name: mcp-server
         image: beta-drone-system:latest
         imagePullPolicy: Never
         command: ["python", "-u", "mcp_server.py"]
+        volumeMounts:
+        - name: mcp-data
+          mountPath: /app/data
         env:
         - name: MQTT_BROKER
           value: "mosquitto-service"
@@ -65,6 +71,15 @@ spec:
           value: "iot_data"
         ports:
         - containerPort: 8101
+      - name: human-approval-dashboard
+        image: beta-drone-system:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "human_approval_manager.py"]
+        volumeMounts:
+        - name: mcp-data
+          mountPath: /app/data
+        ports:
+        - containerPort: 5002
 ---
 apiVersion: v1
 kind: Service
@@ -74,5 +89,9 @@ spec:
   selector:
     app: mcp-server
   ports:
-  - port: 8101
+  - name: mcp-api
+    port: 8101
     targetPort: 8101
+  - name: approval-dashboard
+    port: 5002
+    targetPort: 5002

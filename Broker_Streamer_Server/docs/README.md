@@ -6,22 +6,22 @@ Questo documento funge da panoramica di alto livello dell'architettura del siste
 
 ---
 
-## 🏗️ 1. Architettura Attuale (As-Is)
+## ️ 1. Architettura Attuale (As-Is)
 
 L'infrastruttura operativa di base si fonda su un modello a microservizi orientato agli eventi, ottimizzato per l'elaborazione di metriche IoT e code di business.
 
 ```mermaid
 graph LR
     subgraph Edge Devices
-        D[🚁 Simulatore Drone] 
-        C[📱 Simulatore Clienti]
+        D[ Simulatore Drone] 
+        C[ Simulatore Clienti]
     end
     
-    MB((📨 Mosquitto MQTT))
+    MB(( Mosquitto MQTT))
     
     subgraph Core Platform
-        SC[🧠 Server Centrale]
-        DB[(💾 InfluxDB)]
+        SC[ Server Centrale]
+        DB[( InfluxDB)]
     end
     
     D -- Telemetria IoT --> MB
@@ -36,31 +36,31 @@ graph LR
 
 I componenti principali, tutti containerizzati, includono:
 
-*   **🚁 Simulatore del Drone (ex "Sensore Smart"):** 
+*   ** Simulatore del Drone (ex "Sensore Smart"):** 
     *   **Ruolo:** Agisce come Digital Twin dei droni fisici della flotta.
     *   **Funzionamento:** Genera flussi continui ad alta frequenza (stream) di telemetria IoT.
     *   **Payload dei dati:** Include informazioni critiche di volo, tra cui: coordinate spaziali (GPS simulato), percentuale di batteria residua, anomalie hardware e indici di usura dei componenti (es. rotori).
 
-*   **📱 Simulatore dei Clienti (ex "Sensore Non-Smart"):** 
+*   ** Simulatore dei Clienti (ex "Sensore Non-Smart"):** 
     *   **Ruolo:** Funge da generatore di carico per il business, simulando l'app frontend degli utenti.
     *   **Funzionamento:** Crea e invia un flusso asincrono ma costante di nuovi ordini di spedizione.
     *   **Payload dei dati:** Dettagli pacco, coordinate di ritiro/consegna, e priorità della spedizione.
 
-*   **📨 Message Broker (Eclipse Mosquitto):** 
+*   ** Message Broker (Eclipse Mosquitto):** 
     *   **Ruolo:** Il cuore della comunicazione pub/sub.
     *   **Vantaggio:** Disaccoppia i flussi di produzione (Simulatori) da quelli di elaborazione, garantendo la delivery dei messaggi MQTT con bassa latenza anche durante i picchi di traffico.
 
-*   **🧠 Server Centrale / Controller:** 
+*   ** Server Centrale / Controller:** 
     *   **Ruolo:** Nodo primario di computazione dati.
     *   **Funzionamento:** Agisce come subscriber continuo sui canali MQTT (telemetria e ordini). Effettua controlli di integrità del dato, logica di pre-filtraggio e aggregazione delle metriche, instradando le informazioni verso lo storage persistente.
 
-*   **💾 Storage Layer (InfluxDB):** 
+*   ** Storage Layer (InfluxDB):** 
     *   **Ruolo:** Database Time-Series scelto strategicamente per le performance ottimali nell'inserimento e nell'analisi di sequenze temporali.
     *   **Funzionamento:** Memorizza sia le tracce di telemetria (per analisi di durabilità e fault-prediction) sia la coda storica degli ordini dei clienti.
 
 ---
 
-## 🚀 2. Evoluzione Intelligente: Il Livello MCP (To-Be)
+##  2. Evoluzione Intelligente: Il Livello MCP (To-Be)
 
 Il focus della prossima milestone verterà sull'introduzione di logiche di intelligenza artificiale integrando il **Model Context Protocol (MCP)**. L'obiettivo è trasformare il sistema reattivo in un ecosistema proattivo e auto-gestito.
 
@@ -72,17 +72,17 @@ graph TD
     end
 
     subgraph Flotta [Edge]
-        D[🚁 Drone]
+        D[ Drone]
     end
 
     subgraph Decision_Making [Decision Making Layer MCP]
-        MCP_A[🤖 Agente Analista MCP]
-        MCP_E[⚡ Agente Esecutore MCP]
+        MCP_A[ Agente Analista MCP]
+        MCP_E[ Agente Esecutore MCP]
     end
 
     subgraph Sicurezza [Sicurezza e Deployment]
         K8S(API Kubernetes)
-        HIL{👤 Human-in-the-Loop}
+        HIL{ Human-in-the-Loop}
     end
 
     DB -.->|Legge Metriche, Usura e Coda Ordini| MCP_A

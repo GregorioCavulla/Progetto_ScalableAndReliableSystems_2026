@@ -32,7 +32,7 @@ def test_university_connection():
 
         # Stampa del risultato
         content = response.choices[0].message.content
-        print("\n✅ CONNESSIONE RIUSCITA!")
+        print("\n CONNESSIONE RIUSCITA!")
         print("-" * 30)
         print(f"Risposta dal modello:\n{content}")
         print("-" * 30)
@@ -41,7 +41,7 @@ def test_university_connection():
         print(f"\nUtilizzo token: {response.usage.total_tokens} (Input: {response.usage.prompt_tokens}, Output: {response.usage.completion_tokens})")
 
     except Exception as e:
-        print("\n❌ ERRORE DI CONNESSIONE!")
+        print("\n ERRORE DI CONNESSIONE!")
         print(f"Dettagli errore: {str(e)}")
         print("\nControlla che l'API_KEY e il BASE_URL siano corretti e che il modello sia attivo.")
 

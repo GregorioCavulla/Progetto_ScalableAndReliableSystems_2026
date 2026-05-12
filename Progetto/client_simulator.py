@@ -36,11 +36,12 @@ def generate_order():
         "weight_kg": round(random.uniform(0.5, 5.0), 2),
         "priority": random.choices(["low", "normal", "high"], weights=[0.2, 0.6, 0.2])[0],
         "timestamp": time.time()
+        # TODO : aggiungere distribuzione uniforme di incasso per ogni ordine
     }
     return order
 
 def on_connect(client, userdata, flags, reasonCode, properties=None):
-    print(f"[{CLIENT_ID}] 📱 Connesso al broker MQTT. Generazione ordini...")
+    print(f"[{CLIENT_ID}]  Connesso al broker MQTT. Generazione ordini...")
 
 def run():
     client = mqtt.Client(client_id=CLIENT_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
@@ -65,7 +66,7 @@ def run():
             payload = json.dumps(nuovo_ordine)
             
             client.publish(TOPIC_ORDINI, payload)
-            print(f"📦 Nuovo Ordine Generato: {nuovo_ordine['order_id']} | Priorità: {nuovo_ordine['priority'].upper()}")
+            print(f" Nuovo Ordine Generato: {nuovo_ordine['order_id']} | Priorità: {nuovo_ordine['priority'].upper()}")
             
     except KeyboardInterrupt:
         print(f"[{CLIENT_ID}] Spegnimento simulatore clienti...")

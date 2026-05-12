@@ -7,7 +7,7 @@ import time
 
 def run_command(command, allow_failure=False, hide_output=False):
     """Esegue un comando shell e gestisce gli errori."""
-    print(f"🔄 Esecuzione: {command}")
+    print(f" Esecuzione: {command}")
     try:
         if hide_output:
             result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -17,19 +17,19 @@ def run_command(command, allow_failure=False, hide_output=False):
             return ""
     except subprocess.CalledProcessError as e:
         if not allow_failure:
-            print(f"❌ Errore durante l'esecuzione del comando: {command}")
+            print(f" Errore durante l'esecuzione del comando: {command}")
             if hide_output:
                 print(f"Dettagli:\n{e.stderr}")
             sys.exit(1)
         return ""
 
 def main():
-    print("🚀 --- INIZIALIZZAZIONE AMBIENTE BETA (DRONE SYSTEM) --- 🚀\n")
+    print(" --- INIZIALIZZAZIONE AMBIENTE BETA (DRONE SYSTEM) --- \n")
 
     # 0. Entrare nella cartella corretta
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     os.chdir(project_root)
-    print(f"📍 Posizionato in: {project_root}")
+    print(f" Posizionato in: {project_root}")
 
     # 1. Controllare se Docker è attivo
     print("\n1️⃣ Controllo stato di Docker...")
@@ -65,7 +65,7 @@ def main():
     run_command("kubectl apply -f configs/")
 
     # 6. Wait (Opzionale: attende che il broker sia pronto)
-    print("\n⏳ Attesa dei pod vitali (Mosquitto, InfluxDB, MCP-Server, AI-Brain)...")
+    print("\n Attesa dei pod vitali (Mosquitto, InfluxDB, MCP-Server, AI-Brain)...")
     time.sleep(5) # Piccola pausa per permettere al cluster di registrare i container
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/mosquitto || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true", allow_failure=True)
@@ -84,6 +84,10 @@ def main():
     print("6.7️⃣ Avvio port-forward per la Dashboard del Server Centrale sulla porta locale 5000...")
     flask_proc = subprocess.Popen(["kubectl", "port-forward", "deployment/central-server", "5000:5000"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    # 6.8 Port-forward per Shield (Human Approval)
+    print("6.8️⃣ Avvio port-forward per Human Approval Shield sulla porta locale 5002...")
+    shield_proc = subprocess.Popen(["kubectl", "port-forward", "svc/mcp-server-service", "5002:5002"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     # 7. Registrazione processi in background
     print("\n7️⃣ Registrazione dei port-forward nel file PID...")
     pid_file = os.path.join(project_root, "agent_pids.txt")
@@ -92,10 +96,12 @@ def main():
         f.write(f"{influx_proc.pid}\n")
         f.write(f"{mqtt_proc.pid}\n")
         f.write(f"{flask_proc.pid}\n")
+        f.write(f"{shield_proc.pid}\n")
 
-    print("\n✅ AMBIENTE BETA AVVIATO CON SUCCESSO!")
-    print("👉 Comandi Utili e Link:")
-    print("   🌐 Dashboard Server:       http://localhost:5000")
+    print("\n AMBIENTE BETA AVVIATO CON SUCCESSO!")
+    print(" Comandi Utili e Link:")
+    print("    Dashboard Server:       http://localhost:5000")
+    print("   ️ Human Approval Shield:  http://localhost:5002")
     print("   Visualizza i pod:          kubectl get pods")
     print("   Visualizza log droni:      kubectl logs -f -l app=drone-simulator")
     print("   Visualizza log ordini:     kubectl logs -f -l app=client-simulator")

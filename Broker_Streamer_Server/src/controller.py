@@ -20,10 +20,10 @@ def invia_comando(topic, messaggio):
         client_mqtt = mqtt.Client(CallbackAPIVersion.VERSION2, "pannello-interno")
         client_mqtt.connect(BROKER, PORT, 60)
         client_mqtt.publish(topic, messaggio)
-        print(f"\n🚀 [SUCCESSO] Inviato su '{topic}' -> {messaggio}\n")
+        print(f"\n [SUCCESSO] Inviato su '{topic}' -> {messaggio}\n")
         client_mqtt.disconnect()
     except Exception as e:
-        print(f"\n❌ [ERRORE MQTT]: {e}\n")
+        print(f"\n [ERRORE MQTT]: {e}\n")
 
 def ottieni_sensori():
     """Chiede a K8s in tempo reale la lista dei pod attivi"""
@@ -31,7 +31,7 @@ def ottieni_sensori():
         pods = k8s_core.list_namespaced_pod(namespace="default", label_selector="app=sensore-b")
         return [pod.metadata.name for pod in pods.items if pod.status.phase == "Running"]
     except Exception as e:
-        print(f"\n❌ [ERRORE K8S API]: {e}")
+        print(f"\n [ERRORE K8S API]: {e}")
         return []
 
 def scala_sensori(repliche):
@@ -43,20 +43,20 @@ def scala_sensori(repliche):
             namespace="default",
             body=body
         )
-        print(f"\n✅ [SUCCESSO] Ordine inviato: Kubernetes sta portando i sensori a {repliche}!")
+        print(f"\n [SUCCESSO] Ordine inviato: Kubernetes sta portando i sensori a {repliche}!")
     except Exception as e:
-        print(f"\n❌ [ERRORE K8S SCALE]: {e}")
+        print(f"\n [ERRORE K8S SCALE]: {e}")
 
 if __name__ == "__main__":
     while True:
         print("\n===================================")
-        print("   🎛️  PANNELLO KUBERNETES IoT     ")
+        print("   ️  PANNELLO KUBERNETES IoT     ")
         print("===================================")
-        print("1. 📢 Accendi Ventola a TUTTI")
-        print("2. 📢 Spegni Ventola a TUTTI")
-        print("3. 🎯 Seleziona SINGOLO sensore")
-        print("4. 📈 MODIFICA NUMERO SENSORI (Scale)")
-        print("0. ❌ Esci")
+        print("1.  Accendi Ventola a TUTTI")
+        print("2.  Spegni Ventola a TUTTI")
+        print("3.  Seleziona SINGOLO sensore")
+        print("4.  MODIFICA NUMERO SENSORI (Scale)")
+        print("0.  Esci")
         print("===================================")
         
         scelta = input("Seleziona un'azione: ")

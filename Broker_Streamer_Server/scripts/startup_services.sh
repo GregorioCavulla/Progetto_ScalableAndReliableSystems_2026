@@ -6,9 +6,9 @@ set -e
 # Assicuriamoci di essere nella cartella corretta (root del progetto)
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$DIR/.." && pwd)"
-cd "$ROOT" || { echo "❌ Cartella non trovata!"; exit 1; }
+cd "$ROOT" || { echo " Cartella non trovata!"; exit 1; }
 
-echo "🚀 --- INIZIALIZZAZIONE LABORATORIO IOT --- 🚀"
+echo " --- INIZIALIZZAZIONE LABORATORIO IOT --- "
 
 echo "1️⃣ Avvio del motore Docker..."
 if ! systemctl is-active --quiet docker; then
@@ -46,7 +46,7 @@ echo "5️⃣ Deploy dei pilastri dell'infrastruttura (Mosquitto & InfluxDB)..."
 kubectl apply -f configs/mosquitto.yaml
 kubectl apply -f configs/influxdb.yaml
 
-echo "⏳ Attesa che Broker e Database siano operativi (può richiedere un minuto)..."
+echo " Attesa che Broker e Database siano operativi (può richiedere un minuto)..."
 sleep 5 # Pausa per far recepire i comandi a K8s
 kubectl wait --for=condition=available --timeout=120s deployment/mosquitto || true
 kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true
@@ -73,12 +73,12 @@ if [ -d "venv" ]; then
     AGENT_PID=$!
     echo $AGENT_PID > agent_crew.pid
 else
-    echo "⚠️ Ambiente virtuale non trovato. Esegui 'python3 -m venv venv' e installa le dipendenze richieste." 
+    echo "️ Ambiente virtuale non trovato. Esegui 'python3 -m venv venv' e installa le dipendenze richieste." 
 fi
 
 echo ""
-echo "✅ LABORATORIO OPERATIVO AL 100%!"
-echo "👉 Per vedere i log del server:  kubectl logs -f deployment/server-centrale"
-echo "👉 Per vedere i log dell'Agent:  tail -f agent_crew.log"
-echo "👉 Per aprire il Pannello AI:   source venv/bin/activate && python ai_pannello.py"
-echo "👉 Per aprire la dashboard DB:  kubectl port-forward svc/influxdb-service 8086:8086"
+echo " LABORATORIO OPERATIVO AL 100%!"
+echo " Per vedere i log del server:  kubectl logs -f deployment/server-centrale"
+echo " Per vedere i log dell'Agent:  tail -f agent_crew.log"
+echo " Per aprire il Pannello AI:   source venv/bin/activate && python ai_pannello.py"
+echo " Per aprire la dashboard DB:  kubectl port-forward svc/influxdb-service 8086:8086"

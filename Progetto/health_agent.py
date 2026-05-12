@@ -17,6 +17,10 @@ SYSTEM_PROMPT = (
     "Usa i tool disponibili per leggere dati, accedere agli ordini, scalare e gestire approvazioni. "
 )
 
+# TODO: valutare il guadagno in base a incasso ordine - wear e batteria drone (costi stimati per ogni missione) e usarlo come metrica per decidere le assegnazioni
+
+# TODO: pulire il log
+
 class HealthAgent:
     def __init__(self, api_key, base_url, model, mcp_url, token):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
@@ -108,7 +112,7 @@ class HealthAgent:
             return {"error": f"Errore di rete o timeout contattando l'MCP: {str(e)}"}
 
     def run(self):
-        print("\n🏥 HEALTH AGENT - MONITORAGGIO SALUTE FLOTTA")
+        print("\n HEALTH AGENT - MONITORAGGIO SALUTE FLOTTA")
         
         user_message = "Controlla la salute della flotta di droni e prendi azioni correttive se necessario."
         messages = [
@@ -117,7 +121,7 @@ class HealthAgent:
         ]
 
     
-        print("⏳ Ragionamento in corso...")
+        print(" Ragionamento in corso...")
         
         # QUESTO È IL CUORE DELL'AGENTE: Un loop che continua finché l'LLM non ha finito
         while True:
@@ -136,12 +140,12 @@ class HealthAgent:
                     if final_content is None:
                         final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
                     
-                    print(f"📋 Rapporto Finale: {final_content}")
+                    print(f" Rapporto Finale: {final_content}")
                     return final_content
                 
                 # 2. ESECUZIONE TOOL: L'LLM vuole raccogliere altri dati o eseguire azioni
                 tool_count = len(msg.tool_calls)
-                print(f"🔧 Uso {tool_count} tool per raccogliere dati...")
+                print(f" Uso {tool_count} tool per raccogliere dati...")
                 
                 # Salviamo l'intenzione dell'LLM nella cronologia
                 messages.append(msg)
@@ -162,9 +166,9 @@ class HealthAgent:
                         "content": json.dumps(result)
                     })
                 
-                print("⏳ Continuo ragionamento con nuovi dati...")
+                print(" Continuo ragionamento con nuovi dati...")
                 # Il ciclo riparte! Ora l'LLM vedrà i dati e deciderà il prossimo tool da usare.
                 
             except Exception as e:
-                print(f"❌ Errore: {e}")
+                print(f" Errore: {e}")
                 return f"Errore: {e}"

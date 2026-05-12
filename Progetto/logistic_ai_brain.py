@@ -33,11 +33,13 @@ logistic_agent = LogisticAgent(
     token=MCP_TOKEN
 )
 
+# TODO: pulire il log
+
 def run_agent_loop():
-    print("🧠 --- AVVIO ORCHESTRATORE AI (VANILLA LLM AGENT) --- 🧠")
+    print(" --- AVVIO ORCHESTRATORE AI (VANILLA LLM AGENT) --- ")
     
     if not API_KEY:
-        print("❌ OPENAI_API_KEY non settata! Imposta la variabile d'ambiente.")
+        print(" OPENAI_API_KEY non settata! Imposta la variabile d'ambiente.")
         return
     
     while True:
@@ -45,25 +47,25 @@ def run_agent_loop():
             # Esecuzione Health Agent
             try:
                 health_report = health_agent.run()
-                print(f"📢 Salute Flotta: {health_report}")
+                print(f" Salute Flotta: {health_report}")
             except Exception as e:
-                print(f"❌ Errore Health Agent: {e}")
+                print(f" Errore Health Agent: {e}")
             
             # Gestione ordini - l'agente leggerà da InfluxDB via tool get_pending_orders
             try:
                 logistic_report = logistic_agent.run()
-                print(f"✅ Logistica: {logistic_report}")
+                print(f" Logistica: {logistic_report}")
             except Exception as e:
-                print(f"❌ Errore Logistic Agent: {e}")
+                print(f" Errore Logistic Agent: {e}")
             
             time.sleep(30)  # Pausa tra cicli
 
         except Exception as e:
-            print(f"❌ Errore nel loop: {e}")
+            print(f" Errore nel loop: {e}")
             time.sleep(5)
 
 if __name__ == "__main__":
     try:
         run_agent_loop()
     except KeyboardInterrupt:
-        print("\n🛑 Spegnimento orchestratore...")
+        print("\n Spegnimento orchestratore...")

@@ -71,7 +71,7 @@ def request_human_approval(action_type: str, reason: str) -> str:
 
 def main():
     print("==================================================")
-    print("   🚀 IOT AGENTIC SYSTEM - COORDINATOR (CREWAI)  ")
+    print("    IOT AGENTIC SYSTEM - COORDINATOR (CREWAI)  ")
     print("==================================================")
 
     # 1. Definizione dell'Agente Observer
@@ -128,13 +128,13 @@ def main():
         # Avvia l'esecuzione
         risultato = iot_crew.kickoff()
         
-        print("\n✅ RISULTATO FINALE DELLA CREW:")
+        print("\n RISULTATO FINALE DELLA CREW:")
         print("-" * 40)
         print(risultato)
         print("-" * 40)
         
     except Exception as e:
-        print(f"❌ Errore durante le operazioni della Crew: {e}")
+        print(f" Errore durante le operazioni della Crew: {e}")
 
 if __name__ == "__main__":
     main()

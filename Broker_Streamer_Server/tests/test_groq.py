@@ -6,7 +6,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 def test_groq_connection():
-    print(f"--- ⚡ TEST DI CONNESSIONE GROQ ---")
+    print(f"---  TEST DI CONNESSIONE GROQ ---")
     
     # Inizializzazione client (Groq è compatibile con l'SDK OpenAI)
     client = OpenAI(
@@ -32,7 +32,7 @@ def test_groq_connection():
         )
 
         content = response.choices[0].message.content
-        print("\n✅ CONNESSIONE RIUSCITA!")
+        print("\n CONNESSIONE RIUSCITA!")
         print("-" * 30)
         print(f"Risposta da Groq:\n{content}")
         print("-" * 30)
@@ -41,7 +41,7 @@ def test_groq_connection():
         print(f"\nUtilizzo token: {response.usage.total_tokens}")
 
     except Exception as e:
-        print("\n❌ ERRORE DI CONNESSIONE!")
+        print("\n ERRORE DI CONNESSIONE!")
         print(f"Dettagli: {str(e)}")
 
 if __name__ == "__main__":

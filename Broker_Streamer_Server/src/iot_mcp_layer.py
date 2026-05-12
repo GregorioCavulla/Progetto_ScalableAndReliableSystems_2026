@@ -31,7 +31,7 @@ class IotMCP:
             try:
                 config.load_kube_config() # Fallback: usa config locale per test dal tuo PC
             except Exception as e:
-                print(f"⚠️ Avviso K8s: Impossibile caricare configurazione ({e})")
+                print(f"️ Avviso K8s: Impossibile caricare configurazione ({e})")
         
         self.k8s_apps = client.AppsV1Api()
         self.k8s_core = client.CoreV1Api()
@@ -59,7 +59,7 @@ class IotMCP:
             f.write(json.dumps(entry) + "\n")
 
     # ==========================================
-    # 👁️ FUNZIONI PER L'OBSERVER MCP (Read-Only)
+    # ️ FUNZIONI PER L'OBSERVER MCP (Read-Only)
     # ==========================================
 
     def get_cluster_status(self) -> dict:
@@ -104,7 +104,7 @@ class IotMCP:
             return {"error": str(e)}
 
     # ==========================================
-    # 🛠️ FUNZIONI PER L'ACTION MCP (Write)
+    # ️ FUNZIONI PER L'ACTION MCP (Write)
     # ==========================================
 
     def send_mqtt_command(self, target: str, command: str) -> dict:

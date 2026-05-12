@@ -1,8 +1,8 @@
-# 🎯 TODO: Sviluppo Progetto Droni (Versione Beta)
+#  TODO: Sviluppo Progetto Droni (Versione Beta)
 
 Questo documento traccia i passaggi e l'avanzamento per la versione Beta del sistema di gestione flotta droni. Al centro del sistema, l'intelligenza nativa vanilla sostituisce CrewAI.
 
-## ✅ Fasi Completate
+##  Fasi Completate
 - [x] **Digital Twin dei Droni**: Creato `drone_simulator.py` con macchina a stati (`IDLE`, `IN_DELIVERY`, `RETURNING`, `MAINTENANCE`), consumo batteria e volo vettoriale.
 - [x] **Simulatore Clienti**: Creato `client_simulator.py` per inviare pacchetti JSON su MQTT contenenti ID ordine, coordinate e priorità.
 - [x] **Server Centrale e Database**: Creato `central_server.py` che ascolta broker MQTT e persiste telemetria flotta e coda ordini in **InfluxDB** usando il client Python ufficiale.
@@ -15,7 +15,7 @@ Questo documento traccia i passaggi e l'avanzamento per la versione Beta del sis
 - [x] **Completamento Sistema Decisionale**: Coordinato e testato il loop decisionale in `logistic_ai_brain.py` per gli agenti AI.
 - [x] **Dashboard Osservabilità**: Implementata dashboard di monitoraggio e visualizzazione eventi in tempo reale.
 
-## 🛠️ Fasi da Implementare
+## ️ Fasi da Implementare
 
 ### 3️⃣ Dashboard Eventi Catastrofici
 - [ ] **Dashboard Simulazione Disastri**: Creare uno script o un pannello di controllo per iniettare stress test nel sistema.
