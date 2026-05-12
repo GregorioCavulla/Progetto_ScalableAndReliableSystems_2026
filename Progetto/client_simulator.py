@@ -65,7 +65,7 @@ def run():
             nuovo_ordine = generate_order()
             payload = json.dumps(nuovo_ordine)
             
-            client.publish(TOPIC_ORDINI, payload)
+            client.publish(TOPIC_ORDINI, payload, qos=1)
             print(f" Nuovo Ordine Generato: {nuovo_ordine['order_id']} | Priorità: {nuovo_ordine['priority'].upper()}")
             
     except KeyboardInterrupt:

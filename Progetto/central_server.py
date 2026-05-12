@@ -275,10 +275,9 @@ def record_assignment(topic, payload):
 
 def on_connect(client, userdata, flags, reasonCode, properties=None):
     print(f" [Server Centrale] Connesso al Broker MQTT. Ascolto su telemetria, ordini e comandi.")
-    client.subscribe(TOPIC_TELEMETRY)
-    client.subscribe(TOPIC_ORDINI)
-    client.subscribe(TOPIC_COMMANDS)
-    client.subscribe(TOPIC_COMMANDS)
+    client.subscribe(TOPIC_TELEMETRY, qos=0)
+    client.subscribe(TOPIC_ORDINI, qos=1)
+    client.subscribe(TOPIC_COMMANDS, qos=1)
 
 
 def on_message(client, userdata, message, properties=None):
@@ -293,7 +292,7 @@ def on_message(client, userdata, message, properties=None):
         if topic == TOPIC_TELEMETRY:
             drone_id = payload.get("id")
             previous = state["drones"].get(drone_id, {})
-            previous_state = previous.get("state")
+            previous_state = previous.get("state")a
             state["drones"][drone_id] = payload
 
             if previous_state == "RETURNING" and payload.get("state") == "IDLE":
@@ -356,7 +355,7 @@ def run():
     flask_thread = Thread(target=start_flask, daemon=True)
     flask_thread.start()
 
-    client = mqtt.Client(client_id=SERVER_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
+    client = mqtt.Client(client_id=SERVER_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2, clean_session=False)
     client.on_connect = on_connect
     client.on_message = on_message
 
