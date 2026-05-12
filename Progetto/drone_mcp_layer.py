@@ -177,10 +177,10 @@ class DroneMCP:
     # ️ FUNZIONI PER L'ACTION MCP (Write)
     # ==========================================
 
-    def send_mqtt_command(self, target: str, action: str, **kwargs) -> dict:
+    def send_mqtt_command(self, target: str, action: str, force: bool = False, **kwargs) -> dict:
         """Invia un comando MQTT ai droni"""
         # Controllo Policy
-        if action in POLICY_LIMITS["requires_human_approval"]:
+        if not force and action in POLICY_LIMITS["requires_human_approval"]:
             return {
                 "allowed": False, 
                 "reason": f"Il comando {action} è distruttivo. Usa 'request_human_approval'."
@@ -200,10 +200,10 @@ class DroneMCP:
         except Exception as e:
             return {"allowed": False, "error": str(e)}
 
-    def scale_drone_deployment(self, replicas: int) -> dict:
+    def scale_drone_deployment(self, replicas: int, force: bool = False) -> dict:
         """Modifica le repliche del deployment droni su Kubernetes"""
         # Controllo Policy
-        if replicas > POLICY_LIMITS["max_drones_auto"]:
+        if not force and replicas > POLICY_LIMITS["max_drones_auto"]:
             return {
                 "allowed": False,
                 "reason": f"Richiesta di {replicas} droni supera il limite di automazione ({POLICY_LIMITS['max_drones_auto']}). Usa 'request_human_approval'."
@@ -222,8 +222,10 @@ class DroneMCP:
         except Exception as e:
             return {"allowed": False, "error": str(e)}
 
-    def request_human_approval(self, action_type: str, payload: dict, reason: str) -> dict:
+    def request_human_approval(self, action_type: str, reason: str, payload: dict = None) -> dict:
         """Strumento per chiedere permesso quando bloccato dalle policy"""
+        if payload is None:
+            payload = {}
         request_id = f"REQ-{int(time.time())}"
         entry = {
             "request_id": request_id,

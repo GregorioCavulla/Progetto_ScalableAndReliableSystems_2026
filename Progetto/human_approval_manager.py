@@ -3,8 +3,10 @@ import json
 import time
 from pathlib import Path
 from flask import Flask, jsonify, render_template_string, request, redirect
+from drone_mcp_layer import DroneMCP
 
 app = Flask(__name__)
+mcp = DroneMCP()
 APPROVALS_FILE = Path("data/pending_approvals.jsonl")
 
 HTML_TEMPLATE = """
@@ -121,6 +123,16 @@ def approve(req_id):
     for req in approvals:
         if req["request_id"] == req_id and req["status"] == "pending":
             req["status"] = "approved"
+            # Eseguiamo immediatamente l'azione bypassando la policy dell'agente
+            try:
+                action = req.get("action_type")
+                payload = req.get("payload", {})
+                if action == "scale_drone_deployment":
+                    mcp.scale_drone_deployment(replicas=payload.get("replicas", 1), force=True)
+                elif action == "send_mqtt_command":
+                    mcp.send_mqtt_command(target=payload.get("target", "all"), action=payload.get("action"), force=True, **payload)
+            except Exception as e:
+                print(f"Errore esecuzione azione approvata: {e}")
             break
     save_approvals(approvals)
     return redirect("/")
