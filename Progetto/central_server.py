@@ -292,7 +292,7 @@ def on_message(client, userdata, message, properties=None):
         if topic == TOPIC_TELEMETRY:
             drone_id = payload.get("id")
             previous = state["drones"].get(drone_id, {})
-            previous_state = previous.get("state")a
+            previous_state = previous.get("state")
             state["drones"][drone_id] = payload
 
             if previous_state == "RETURNING" and payload.get("state") == "IDLE":
