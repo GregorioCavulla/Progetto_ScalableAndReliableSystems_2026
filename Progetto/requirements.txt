@@ -1,6 +1,6 @@
-paho-mqtt
+flask
 influxdb-client
 kubernetes
 openai
+paho-mqtt
 requests
-flask

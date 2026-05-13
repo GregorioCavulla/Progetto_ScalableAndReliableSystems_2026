@@ -47,14 +47,14 @@ def run_agent_loop():
             # Esecuzione Health Agent
             try:
                 health_report = health_agent.run()
-                print(f" Salute Flotta: {health_report}")
+                #print(f" Salute Flotta: {health_report}")
             except Exception as e:
                 print(f" Errore Health Agent: {e}")
             
             # Gestione ordini - l'agente leggerà da InfluxDB via tool get_pending_orders
             try:
                 logistic_report = logistic_agent.run()
-                print(f" Logistica: {logistic_report}")
+                #print(f" Logistica: {logistic_report}")
             except Exception as e:
                 print(f" Errore Logistic Agent: {e}")
             
