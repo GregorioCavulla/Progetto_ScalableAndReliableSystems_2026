@@ -71,6 +71,7 @@ def main():
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/mcp-server || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/logistic-ai-brain || true", allow_failure=True)
+    run_command("kubectl wait --for=condition=available --timeout=120s deployment/central-server || true", allow_failure=True)
 
     # 6.5 Port-forward per InfluxDB (necessario per accesso locale)
     print("\n6.5️⃣ Avvio port-forward per InfluxDB sulla porta locale 8086...")
@@ -87,6 +88,20 @@ def main():
     # 6.8 Port-forward per Shield (Human Approval)
     print("6.8️⃣ Avvio port-forward per Human Approval Shield sulla porta locale 5002...")
     shield_proc = subprocess.Popen(["kubectl", "port-forward", "svc/mcp-server-service", "5002:5002"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # 6.9 Port-forward resilienti persistenti (in caso di crash, si riavvieranno automaticamente)
+    # 5000 - Dashboard Server
+    flask_cmd = "while true; do kubectl port-forward svc/central-server-service 5000:5000; sleep 2; done"
+    flask_proc = subprocess.Popen(["sh", "-c", flask_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # 5002 - Human Approval Shield
+    shield_cmd = "while true; do kubectl port-forward svc/mcp-server-service 5002:5002; sleep 2; done"
+    shield_proc = subprocess.Popen(["sh", "-c", shield_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # 1883 - MQTT Broker
+    mqtt_cmd = "while true; do kubectl port-forward svc/mosquitto-service 1883:1883; sleep 2; done"
+    mqtt_proc = subprocess.Popen(["sh", "-c", mqtt_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # 8086 - InfluxDB
+    influx_cmd = "while true; do kubectl port-forward svc/influxdb-service 8086:8086; sleep 2; done"
+    influx_proc = subprocess.Popen(["sh", "-c", influx_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # 7. Registrazione processi in background
     print("\n7️⃣ Registrazione dei port-forward nel file PID...")
