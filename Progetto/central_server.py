@@ -294,7 +294,7 @@ def on_message(client, userdata, message, properties=None):
             previous_state = previous.get("state")
             state["drones"][drone_id] = payload
 
-            if previous_state == "RETURNING" and payload.get("state") == "IDLE":
+            if previous_state == "IN_DELIVERY" and payload.get("state") == "RETURNING":
                 assigned_order = state["assignments"].pop(drone_id, None)
                 if assigned_order:
                     state["completed_orders"].append({
