@@ -65,7 +65,7 @@ def main():
     run_command("kubectl apply -f configs/")
 
     # 6. Wait (Opzionale: attende che il broker sia pronto)
-    print("\n Attesa dei pod vitali (Mosquitto, InfluxDB, MCP-Server, AI-Brain)...")
+    print("\n Attesa dei pod vitali (Mosquitto, InfluxDB, MCP-Server, AI-Brain, central-server)...")
     time.sleep(5) # Piccola pausa per permettere al cluster di registrare i container
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/mosquitto || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true", allow_failure=True)

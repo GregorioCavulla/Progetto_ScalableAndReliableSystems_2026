@@ -190,9 +190,12 @@ class DroneMCP:
         topic = f"comandi/{target}" if target != "all" else "comandi/tutti"
         payload = json.dumps({"action": action, **kwargs})
         try:
-            client_mqtt = mqtt.Client(CallbackAPIVersion.VERSION2, "agent-action")
+            client_mqtt = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2, client_id=f"agent-action-{int(time.time())}")
             client_mqtt.connect(self.mqtt_broker, self.mqtt_port, 60)
-            client_mqtt.publish(topic, payload)
+            client_mqtt.loop_start()               # Avvia il thread di rete in background
+            msg_info = client_mqtt.publish(topic, payload, qos=1) # QoS 1 garantisce la consegna
+            msg_info.wait_for_publish()            # Ferma il codice finché non viene spedito davvero
+            client_mqtt.loop_stop()
             client_mqtt.disconnect()
             
             self._log_action("send_mqtt_command", {"target": target, "action": action, "kwargs": kwargs})

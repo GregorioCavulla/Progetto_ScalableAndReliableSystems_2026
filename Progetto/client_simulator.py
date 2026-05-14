@@ -12,15 +12,15 @@ CLIENT_ID = os.getenv("CLIENT_SIM_ID", f"client-sim-{random.randint(1, 100)}")
 
 TOPIC_ORDINI = "business/ordini/nuovi"
 
-# Area di copertura Hub per generare coordinate limitrofe (sistema di riferimento centrato su [0.0000, 0.0000])
-BASE_LAT = 0.0000
-BASE_LON = 0.0000
-RADIUS = 0.05 # circa 5km 
+# Area di copertura Hub (sistema di riferimento metrico in metri: HUB = [0, 0])
+BASE_LAT = 0.0
+BASE_LON = 0.0
+RADIUS = 5000.0 # circa 5km in metri
 
 def generate_random_coordinate():
     lat = BASE_LAT + random.uniform(-RADIUS, RADIUS)
     lon = BASE_LON + random.uniform(-RADIUS, RADIUS)
-    return round(lat, 6), round(lon, 6)
+    return round(lat, 2), round(lon, 2)
 
 def generate_order():
     pickup_lat, pickup_lon = generate_random_coordinate()
