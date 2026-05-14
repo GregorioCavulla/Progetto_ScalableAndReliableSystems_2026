@@ -128,9 +128,11 @@ def approve(req_id):
                 action = req.get("action_type")
                 payload = req.get("payload", {})
                 if action == "scale_drone_deployment":
-                    mcp.scale_drone_deployment(replicas=payload.get("replicas", 1), force=True)
+                    result = mcp.scale_drone_deployment(replicas=payload.get("replicas", 1), force=True)
+                    print(f"Scale result: {result}")
                 elif action == "send_mqtt_command":
-                    mcp.send_mqtt_command(target=payload.get("target", "all"), action=payload.get("action"), force=True, **payload)
+                    result = mcp.send_mqtt_command(target=payload.get("target", "all"), action=payload.get("action"), force=True, **payload)
+                    print(f"MQTT command result: {result}")
             except Exception as e:
                 print(f"Errore esecuzione azione approvata: {e}")
             break

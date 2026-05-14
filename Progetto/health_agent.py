@@ -1,18 +1,25 @@
 import os
 import json
 import requests
+import time
 from openai import OpenAI
 
 # Prompt di sistema per l'Health Agent
 SYSTEM_PROMPT = (
-    "Sei l'HealthAgent del sistema di droni. Il tuo compito è il monitoraggio vitale della flotta prendendo decisioni di triage di alto livello. "
-    "Interroga lo stato, la telemetria da InfluxDB e monitora il carico (ordini). "
-    "1. L'usura dei droni è percentuale (0-100%). Se un drone tocca il '95%' andrà in MAINTENANCE autonoma rientrando alla base, ritirato dai cieli attivi per evitare un guasto catastrofico in fase di volo. "
-    "2. Se, tuttavia, rilevi un drone in stato MAINTENANCE che si è fermato lontano dall'HUB, ovvero NON alle coordinate base (lat: 0.0, lon: 0.0), significa che è precipitato in mezzo all'area di copertura a causa di un prosciugamento fatale della batteria. "
-    "   Solo ed esclusivamente a fronte di droni precipitati fuori base, scala l'infrastruttura (aggiungendo nuovi pod su Kubernetes) per garantire un recupero immediato dei livelli di servizio sul territorio, senza chiedere permessi ai logistici. "
-    "3. Per qualsiasi altra azione di scala basata sull'eccessivo traffico (es. se la somma di droni attivi non smaltisce o se serve salire oltre a 6 droni attivi), invoca obbligatoriamente il tool 'request_human_approval' prima di intervenire. "
-    "   Dopo l'invocazione di 'request_human_approval', fermati. NON usare 'check_pending_approvals' nel tuo stesso loop, aspetta un turno intero. "
-    "4. Al primo giro, usa sempre 'check_pending_approvals': se rilevi uno status 'approved', annotalo vocalmente rallegrandoti, ma NON invocare tu il deployment scalando: l'infrastruttura sottostante la applica in automatico al click umano."
+    "Sei l'HealthAgent del sistema di droni. Il tuo compito principale è monitorare la salute della flotta e scalare il numero di droni quando necessario per gestire gli ordini pendenti o sostituire droni in manutenzione. "
+    "Interroga regolarmente lo stato dei droni, la telemetria e gli ordini pendenti per prendere decisioni informate. "
+    "1. Monitora l'usura dei droni (0-100%). Se un drone tocca il '95%', va in MAINTENANCE autonoma. "
+    "2. Se un drone in MAINTENANCE è lontano dall'HUB (lat: 0.0, lon: 0.0), è precipitato: scala immediatamente per recupero senza chiedere permessi. "
+    "3. Scala il numero di droni se non ce ne sono abbastanza per gli ordini pendenti o per sostituire quelli in manutenzione. Decidi tu quanti droni aggiungere (es. se ci sono 10 ordini pendenti e 3 droni attivi, scala a 5-6). "
+    "4. Se lo scaling supera 6 droni totali, usa 'request_human_approval' con action_type='scale_drone_deployment', reason appropriato, e payload={'replicas': numero}. Poi fermati e aspetta. "
+    "5. Al primo giro, usa sempre 'check_pending_approvals': se vedi 'approved', NON scalare tu (l'infrastruttura lo fa automaticamente al click umano). "
+    "Usa questi comandi: "
+    "- get_drones_status: per numero droni attivi. "
+    "- get_drones_telemetry: per stato batteria, usura, posizione. "
+    "- get_pending_orders: per ordini pendenti. "
+    "- scale_drone_deployment: per scalare (solo se <=6 o force). "
+    "- request_human_approval: per scaling >6. "
+    "- check_pending_approvals: per controllare approvazioni."
 )
 # TODO: valutare il guadagno in base a incasso ordine - wear e batteria drone (costi stimati per ogni missione) e usarlo come metrica per decidere le assegnazioni
 
@@ -112,6 +119,7 @@ class HealthAgent:
 
     def run(self):
         print("\n HEALTH AGENT - MONITORAGGIO SALUTE FLOTTA")
+        start_time = time.time()
         
         user_message = "Controlla la salute della flotta di droni e prendi azioni correttive se necessario."
         messages = [
@@ -139,6 +147,7 @@ class HealthAgent:
                     if final_content is None:
                         final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
                     
+                    print(f"Tempo di ragionamento: {time.time() - start_time:.2f} secondi")
                     print(f" Rapporto Finale: {final_content}")
                     return final_content
                 

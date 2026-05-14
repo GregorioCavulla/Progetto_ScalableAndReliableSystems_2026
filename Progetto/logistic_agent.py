@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import time
 from openai import OpenAI
 
 # Prompt di sistema per il Logistic Agent
@@ -101,6 +102,7 @@ class LogisticAgent:
 
     def run(self, orders_queue=None):
         print("\n LOGISTIC AGENT - GESTIONE ORDINI")
+        start_time = time.time()
         
         # Se orders_queue non è fornito, istruiamo l'LLM a recuperarlo
         if orders_queue is None or len(orders_queue) == 0:
@@ -132,6 +134,7 @@ class LogisticAgent:
                     if final_content is None:
                         final_content = "Elaborazione completata (Azione eseguita senza commenti testuali)."
                     
+                    print(f"Tempo di ragionamento: {time.time() - start_time:.2f} secondi")
                     print(f" Rapporto Finale: {final_content}")
                     return final_content
                 
