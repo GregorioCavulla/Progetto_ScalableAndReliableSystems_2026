@@ -104,7 +104,7 @@ class Drone:
                         self.target_lat = None
                         self.target_lon = None
                         print(f"[{self.id}]  BATTERIA ESAURITA - Drone caduto in manutenzione alle coordinate {round(self.lat, 6)}, {round(self.lon, 6)}")
-                        continue  # Salta il resto del loop per questo tick
+                        return  # Salta il resto del loop per questo tick
         
         # Logica di ricarica quando fermo alla base
         if self.state == "IDLE" and self.battery < 100.0:

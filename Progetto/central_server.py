@@ -354,7 +354,7 @@ def run():
     flask_thread = Thread(target=start_flask, daemon=True)
     flask_thread.start()
 
-    client = mqtt.Client(client_id=SERVER_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2, clean_session=False)
+    client = mqtt.Client(client_id=SERVER_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
 
