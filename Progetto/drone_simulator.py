@@ -18,6 +18,13 @@ BASE_LAT = 0.0
 BASE_LON = 0.0
 RADIUS = 5000.0 # 5 km in metri
 
+# Costanti
+MAX_BATTERY = 100.0
+MAX_WEAR = 100.0
+MAX_SPEED_KMH = 100.0
+SPEED_MAX_LOAD_KMH = 50.0
+
+
 class Drone:
     def __init__(self, drone_id):
         self.id = drone_id
@@ -70,9 +77,9 @@ class Drone:
             if self.target_lat is not None and self.target_lon is not None:
                 # Calcolo velocità in base al peso (Max 50km/h senza carico, 40-20km/h con carico)
                 if self.state == "RETURNING" or self.current_weight <= 0:
-                    speed_kmh = 50.0
+                    speed_kmh = MAX_SPEED_KMH
                 else:
-                    speed_kmh = max(20.0, 40.0 - (self.current_weight / 5.0) * 20.0)
+                    speed_kmh = max(SPEED_MAX_LOAD_KMH, 80.0 - (self.current_weight / 5.0) * 20.0)
                 
                 speed_mps = speed_kmh / 3.6
                 step_distance = speed_mps * 2.0  # Spostamento per tick (2 secondi)
