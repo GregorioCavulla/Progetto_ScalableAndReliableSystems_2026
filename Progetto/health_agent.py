@@ -26,11 +26,13 @@ SYSTEM_PROMPT = (
 # TODO: pulire il log
 
 class HealthAgent:
-    def __init__(self, api_key, base_url, model, mcp_url, token):
+    def __init__(self, api_key, base_url, model, mcp_url, token, max_iterations=4):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
         self.mcp_url = mcp_url.rstrip("/")
         self.token = token
+        # Limite di iterazioni di ragionamento per evitare loop infiniti e spreco di token
+        self.max_iterations = max_iterations
         
         # Definizione dei tool MCP
         self.tools = [
@@ -129,7 +131,10 @@ class HealthAgent:
 
     
         print(" Ragionamento in corso...")
-        
+
+        # Contatore delle iterazioni di ragionamento (rounds con tool calls)
+        iterations = 0
+
         # QUESTO È IL CUORE DELL'AGENTE: Un loop che continua finché l'LLM non ha finito
         while True:
             try:
@@ -176,6 +181,16 @@ class HealthAgent:
                 
                 print(" Continuo ragionamento con nuovi dati...")
                 # Il ciclo riparte! Ora l'LLM vedrà i dati e deciderà il prossimo tool da usare.
+
+                # Aumenta il contatore delle iterazioni e verifica il limite
+                iterations += 1
+                if iterations >= self.max_iterations:
+                    abort_msg = (
+                        f"Interruzione: raggiunto il limite di {self.max_iterations} iterazioni di ragionamento. "
+                        "Operazione abortita per evitare spreco di token."
+                    )
+                    print(abort_msg)
+                    return abort_msg
                 
             except Exception as e:
                 print(f" Errore: {e}")

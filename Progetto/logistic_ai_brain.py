@@ -16,13 +16,17 @@ MODEL_NAME = "gemini-2.5-pro"
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8101")
 MCP_TOKEN = os.getenv("MCP_TOKEN", "REDACTED_MCP_TOKEN")
 
+# Limite di iterazioni per gli agenti LLM (evita loop di ragionamento troppo lunghi)
+MAX_AGENT_ITERATIONS = int(os.getenv("MAX_AGENT_ITERATIONS", "4"))
+
 # Inizializzazione agenti
 health_agent = HealthAgent(
     api_key=API_KEY,
     base_url=API_BASE,
     model=MODEL_NAME,
     mcp_url=MCP_SERVER_URL,
-    token=MCP_TOKEN
+    token=MCP_TOKEN,
+    max_iterations=MAX_AGENT_ITERATIONS
 )
 
 logistic_agent = LogisticAgent(
@@ -30,7 +34,8 @@ logistic_agent = LogisticAgent(
     base_url=API_BASE,
     model=MODEL_NAME,
     mcp_url=MCP_SERVER_URL,
-    token=MCP_TOKEN
+    token=MCP_TOKEN,
+    max_iterations=MAX_AGENT_ITERATIONS
 )
 
 # TODO: pulire il log
