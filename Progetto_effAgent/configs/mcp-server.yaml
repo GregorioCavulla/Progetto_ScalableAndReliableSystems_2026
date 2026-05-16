@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-server-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mcp-server-role
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale"]
+  verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mcp-server-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: mcp-server-sa
+roleRef:
+  kind: Role
+  name: mcp-server-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      serviceAccountName: mcp-server-sa
+      volumes:
+      - name: mcp-data
+        emptyDir: {}
+      containers:
+      - name: mcp-server
+        image: beta-drone-system:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "mcp_server.py"]
+        volumeMounts:
+        - name: mcp-data
+          mountPath: /app/data
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: MQTT_PORT
+          value: "1883"
+        - name: INFLUX_URL
+          value: "http://influxdb-service:8086"
+        - name: INFLUX_TOKEN
+          value: "my-super-secret-token"
+        - name: INFLUX_ORG
+          value: "laboratorio"
+        - name: INFLUX_BUCKET
+          value: "iot_data"
+        ports:
+        - containerPort: 8101
+      - name: human-approval-dashboard
+        image: beta-drone-system:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "human_approval_manager.py"]
+        volumeMounts:
+        - name: mcp-data
+          mountPath: /app/data
+        ports:
+        - containerPort: 5002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server-service
+spec:
+  selector:
+    app: mcp-server
+  ports:
+  - name: mcp-api
+    port: 8101
+    targetPort: 8101
+  - name: approval-dashboard
+    port: 5002
+    targetPort: 5002

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logistic-ai-brain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logistic-ai-brain
+  template:
+    metadata:
+      labels:
+        app: logistic-ai-brain
+    spec:
+      containers:
+      - name: logistic-ai-brain
+        image: beta-drone-system:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "logistic_ai_brain.py"]
+        env:
+        - name: MCP_SERVER_URL
+          value: "http://mcp-server-service:8101"
+        - name: MCP_TOKEN
+          value: "segreto-universitario"
+        - name: OPENAI_API_KEY
+          value: "sk-BI1ty8WHJ-PBrVP5_ElhZA" # Proxy fallover model setup
