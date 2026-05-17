@@ -9,7 +9,6 @@ from influxdb_client import InfluxDBClient
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
 
-# Costanti e Policy di Sicurezza (Guardrails)
 POLICY_LIMITS = {
     "max_drones_auto": 6, # Oltre 6 droni l'agente deve chiedere il permesso all'umano
     "requires_human_approval": ["SHUTDOWN_ALL", "REBOOT_SYSTEM", "FIRMWARE_UPDATE"],
@@ -18,7 +17,7 @@ POLICY_LIMITS = {
 
 class DroneMCP:
     def __init__(self, data_dir="data"):
-        # Setup cartella per i log di audit e approvazioni
+
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.audit_file = self.data_dir / "audit_actions.jsonl"
@@ -26,10 +25,10 @@ class DroneMCP:
 
         # 1. Setup Kubernetes
         try:
-            config.load_incluster_config() # Prova a caricare config interna al Pod
+            config.load_incluster_config() 
         except:
             try:
-                config.load_kube_config() # Fallback: usa config locale per test
+                config.load_kube_config() 
             except Exception as e:
                 print(f"️ Avviso K8s: Impossibile caricare configurazione ({e})")
         
@@ -79,7 +78,6 @@ class DroneMCP:
         """Interroga InfluxDB per lo stato dei droni recenti"""
         try:
             query_api = self.influx_client.query_api()
-            # Query per ottenere gli ultimi stati dei droni
             query = f'''
                 from(bucket:"{self.influx_bucket}")
                 |> range(start: -{minutes_ago}m)
@@ -99,15 +97,13 @@ class DroneMCP:
                         except Exception:
                             values = {}
 
-                    # InfluxDB restituisce i tag e i campi separatamente
                     drone_id = values.get("drone_id", "unknown")
                     field = values.get("_field")
                     value = values.get("_value")
 
-                    # Inizializziamo il drone se non esiste nel dizionario
-                    drone_entry = results.setdefault(drone_id, {"state": "unknown", "battery": 0, "wear": 0})
                     
-                    # Popoliamo i dati in base a quale campo stiamo leggendo in questa riga
+                    drone_entry = results.setdefault(drone_id, {"state": "unknown", "battery": 0, "wear": 0})
+                 
                     if field == "status":
                         drone_entry["state"] = value
                     elif field == "battery":
@@ -131,7 +127,7 @@ class DroneMCP:
         """Interroga InfluxDB per gli ordini in sospeso"""
         try:
             query_api = self.influx_client.query_api()
-            # Query per ottenere gli ordini recenti non ancora assegnati
+       
             query = f'''
                 from(bucket:"{self.influx_bucket}")
                 |> range(start: -{minutes_ago}m)
@@ -155,7 +151,6 @@ class DroneMCP:
                     priority = values.get("priority", "normal")
                     weight = values.get("_value")
                     
-                    # Evitiamo duplicati
                     if not any(o["order_id"] == order_id for o in orders):
                         orders.append({
                             "order_id": order_id,
@@ -189,7 +184,7 @@ class DroneMCP:
             client_mqtt = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2, client_id=f"agent-action-{int(time.time())}")
             client_mqtt.connect(self.mqtt_broker, self.mqtt_port, 60)
             client_mqtt.loop_start()               # Avvia il thread di rete in background
-            msg_info = client_mqtt.publish(topic, payload, qos=1) # QoS 1 garantisce la consegna
+            msg_info = client_mqtt.publish(topic, payload, qos=1) 
             msg_info.wait_for_publish()            # Ferma il codice finché non viene spedito davvero
             client_mqtt.loop_stop()
             client_mqtt.disconnect()
