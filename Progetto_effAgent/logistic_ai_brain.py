@@ -43,7 +43,24 @@ def calculate_state_memory(state_dict):
     
     return hashlib.md5(state_string.encode('utf-8')).hexdigest()
 
-def triage_manager(state_summary):
+def triage_manager(summary, pending):
+    decision = {"run_health": False, "run_logistic": False}
+    
+    if pending:
+        print(" [Triage] Richiesta in attesa")
+        if summary["ordini_pendenti"] > 0 and summary["droni_idle_disponibili"] > 0:
+            decision["run_logistic"] = True
+        return decision
+
+    if (summary["ordini_pendenti"] > 0 and summary["droni_idle_disponibili"] == 0) or summary["droni_in_manutenzione"] > 0:
+        decision["run_health"] = True
+        
+    if summary["ordini_pendenti"] > 0 and summary["droni_idle_disponibili"] > 0:
+        decision["run_logistic"] = True
+        
+    return decision
+
+def triage_manager_llm(state_summary):
     prompt = f"""
     Sei il Router AI del sistema droni. Analizza questo stato e decidi chi deve intervenire.
     RISPONDI SOLO CON UN JSON VALIDO CON QUESTA STRUTTURA:
@@ -72,8 +89,33 @@ def triage_manager(state_summary):
         print(f"Errore nel Manager Triage: {e}")
         return {"run_health": True, "run_logistic": True, "reason": "Fallback: run both"}
 
+def pending_approvals(mcp_url, mcp_token):
+    """
+    Interroga MCP per vedere se c'è una richiesta in attesa di approvazione umana. 
+    """
+
+    headers = {"X-MCP-Token": mcp_token}
+    payload = {"name": "check_pending_approvals", "args": {}}
+    
+    try:
+        resp = requests.post(f"{mcp_url}/tool", json=payload, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            result = resp.json().get("result", {})
+            
+            pending_list = result.get("pending", []) if isinstance(result, dict) else []
+            
+            if len(pending_list) > 0:
+                return True
+                
+        return False
+        
+    except Exception as e:
+        print(f" [!] Errore di rete controllo approvazioni: {e}")
+        return False
+
+
 def run_agent_loop():
-    print(" --- AVVIO AI BRAIN --- ")
+    print(" --- AVVIO AI --- ")
 
     time.sleep(5)
 
@@ -109,7 +151,8 @@ def run_agent_loop():
         last_state_mem = current_mem
         
         print("[2] Triage Manager in corso...")
-        decision = triage_manager(summary)
+        pending = pending_approvals(MCP_SERVER_URL, MCP_TOKEN)
+        decision = triage_manager(summary, pending)
         print(f" -> Decisione: {decision}")
 
 
