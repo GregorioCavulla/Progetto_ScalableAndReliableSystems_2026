@@ -14,6 +14,7 @@ Attenzione al contesto fisico: il sistema opera su un'area metrica fino a ~5000 
     2. Il 'weight_kg' da sollevare contro la percentuale di batteria del drone. 
     3. Il tasso di usura del mezzo. "
     Se un ordine prioritario è molto pesante (es. 4-5 kg), NON assegnargli un drone logorato (>80%) o con poca batteria, l'anomalia causerebbe uno schianto e avarierebbe il mezzo. "
+    Ogni ordine è unico e può essere assegnato a un solo drone: non usare mai lo stesso order_id più di una volta.
 REGOLE OBBLIGATORIE:
 1. NON spiegare il tuo ragionamento in nessun caso.
 2. NON scrivere testo libero, saluti, preamboli o conclusioni.
@@ -62,6 +63,7 @@ class LogisticAgent:
             {"role": "user", "content": f"Assegna le missioni in base a questo stato:\n\n{injected_context}"}
         ]
 
+        assigned_order_ids = set()
         while True:
             try:
                 response = self.client.chat.completions.create(model=self.model, messages=messages, tools=self.tools, temperature=0.2)
@@ -83,10 +85,27 @@ class LogisticAgent:
                             
                             print(f" [Logistic Agent] Esecuzione tool MCP: {nome_tool} | Argomenti: {argomenti}")
                             
+                            if nome_tool == "send_mqtt_command" and "order_id" in argomenti:
+                                order_id = argomenti["order_id"]
+                                if order_id in assigned_order_ids:
+                                    print(f" [Logistic Agent] Ignoro comando duplicato per order_id {order_id}.")
+                                    result = {
+                                        "allowed": False,
+                                        "status": "rejected",
+                                        "reason": "order_id già assegnato a un altro drone in questo ciclo"
+                                    }
+                                    messages.append({
+                                        "role": "tool",
+                                        "tool_call_id": tool_call.id,
+                                        "name": nome_tool,
+                                        "content": json.dumps(result)
+                                    })
+                                    continue
+                                assigned_order_ids.add(order_id)
                         
                             result = self.call_mcp(nome_tool, argomenti)
                             
-                            # Rimettiamo il risultato nel contesto affinché l'LLM possa leggerlo al prossimo giro
+                 
                             messages.append({
                                 "role": "tool", 
                                 "tool_call_id": tool_call.id, 

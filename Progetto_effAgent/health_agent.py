@@ -12,14 +12,14 @@ REGOLE OBBLIGATORIE
    - Se il numero totale di repliche necessarie è > 6, NON PUOI scalare da solo. DEVI usare obbligatoriamente `request_human_approval` passando l'azione richiesta.
 4. - Se controlli le approvazioni con `check_pending_approvals` e vedi che una tua richiesta precedente è "APPROVATA" (o "GRANTED"), valuta se il numero di repliche autorizzato soddisfa la tua domanda corrente.
      - SE l'approvazione autorizza almeno il numero di droni necessari: DEVI IMMEDIATAMENTE chiamare il tool `scale_drone_deployment` con il numero di repliche autorizzato e `force=True`.
-     - SE l'approvazione è troppo bassa rispetto al bisogno reale: IGNORA quell'approvazione e richiedi una nuova autorizzazione per il numero richiesto.
      - NON fermarti e NON rispondere a testo dopo aver letto l'approvazione: esegui subito lo scaling se l'approvazione è valida.
 5. Se devi scalare i droni e ce ne sono più di 6,-> STEP 1: Chiama SEMPRE prima `check_pending_approvals`.
    -> STEP 2: Analizza ESATTAMENTE la risposta del tool:
       - SE ci sono approvazioni in "approved": usa l'approvazione valida che soddisfa il bisogno attuale, o richiedi una nuova approvazione se serve più capacità.
       - SE ci sono approvazioni in "pending": NON FARE NULLA. Hai finito.
       - SE le liste sono vuote (nessuna richiesta in corso): Chiama `request_human_approval` specificando quante repliche ti servono. NON controllare di nuovo.
-6. Smetti di generare testo non appena hai chiamato il tool.
+6. **REGOLA CRITICA**: Se hai appena inviato una richiesta di approvazione umana nel turno precedente, NON PUOI fare una nuova richiesta di approvazione (request_human_approval) in questo turno. Devi prima gestire la richiesta esistente con check_pending_approvals e/o scalare se l'approvazione è già concessa.
+7. Smetti di generare testo non appena hai chiamato il tool.
 """
 
 class HealthAgent:
@@ -29,6 +29,7 @@ class HealthAgent:
         self.mcp_url = mcp_url.rstrip("/")
         self.token = token
         self.last_approval_request_id = None
+        self.approval_requested_last_turn = False
 
         self.tools = [
             {
@@ -99,6 +100,16 @@ class HealthAgent:
                 {"role": "system", "content": SYSTEM_PROMPT}
             ]
 
+            if self.approval_requested_last_turn:
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        "Una richiesta di approvazione umana è stata inviata nel turno precedente. "
+                        "Non richiedere una nuova autorizzazione in questo turno; controlla prima lo stato della richiesta esistente."
+                    )
+                })
+                self.approval_requested_last_turn = False
+
             if self.last_approval_request_id:
                 messages.append({
                     "role": "user",
@@ -144,6 +155,7 @@ class HealthAgent:
                         if tool_name == "request_human_approval":
                             if isinstance(result, dict) and result.get("request_id"):
                                 self.last_approval_request_id = result["request_id"]
+                                self.approval_requested_last_turn = True
                             print(" [Health Agent] Richiesta inviata. Disconnessione asincrona in attesa dell'umano...")
                             return "Richiesta in attesa. Spegnimento."
                         
