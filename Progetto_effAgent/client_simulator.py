@@ -22,9 +22,19 @@ def generate_random_coordinate():
     lon = BASE_LON + random.uniform(-RADIUS, RADIUS)
     return round(lat, 2), round(lon, 2)
 
+
+def get_priority(value_eur):
+    if value_eur >= 100.0:
+        return "high"
+    if value_eur >= 50.0:
+        return "normal"
+    return "low"
+
+
 def generate_order():
     pickup_lat, pickup_lon = generate_random_coordinate()
     drop_lat, drop_lon = generate_random_coordinate()
+    order_value = round(random.uniform(10.0, 150.0), 2)
     
     order = {
         "order_id": f"ORD-{str(uuid.uuid4())[:8].upper()}",
@@ -34,7 +44,8 @@ def generate_order():
         "drop_lat": drop_lat,
         "drop_lon": drop_lon,
         "weight_kg": round(random.uniform(0.5, 5.0), 2),
-        "priority": random.choices(["low", "normal", "high"], weights=[0.2, 0.6, 0.2])[0],
+        "order_value_eur": order_value,
+        "priority": get_priority(order_value),
         "timestamp": time.time()
         # TODO : aggiungere distribuzione uniforme di incasso per ogni ordine
     }
@@ -56,6 +67,7 @@ def run():
             time.sleep(5)
             
     client.loop_start()
+    total_order_value = 0.0
     
     try:
         while True:
@@ -66,10 +78,14 @@ def run():
             payload = json.dumps(nuovo_ordine)
             
             client.publish(TOPIC_ORDINI, payload, qos=1)
-            print(f" Nuovo Ordine Generato: {nuovo_ordine['order_id']} | Priorità: {nuovo_ordine['priority'].upper()}")
+            total_order_value += nuovo_ordine["order_value_eur"]
+            print(
+                f" Nuovo Ordine Generato: {nuovo_ordine['order_id']} | Priorità: {nuovo_ordine['priority'].upper()} | Valore: {nuovo_ordine['order_value_eur']}€ | Totale accumulato: {total_order_value:.2f}€"
+            )
             
     except KeyboardInterrupt:
         print(f"[{CLIENT_ID}] Spegnimento simulatore clienti...")
+        print(f"[{CLIENT_ID}] Valore totale ordini generati: {total_order_value:.2f}€")
         client.loop_stop()
         client.disconnect()
 

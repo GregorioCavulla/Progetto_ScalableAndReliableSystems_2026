@@ -2,9 +2,10 @@ import json
 import os
 import time
 from threading import Thread
+import  requests
 
 import paho.mqtt.client as mqtt
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, request
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -38,6 +39,17 @@ state = {
 }
 
 app = Flask(__name__)
+
+def calculate_total_order_value():
+    total = 0.0
+    total += sum(float(o.get("order_value_eur", 0.0)) for o in state["pending_orders"])
+    total += sum(float(o.get("order_value_eur", 0.0)) for o in state["assignments"].values() if isinstance(o, dict))
+    total += sum(float(o.get("order_value_eur", 0.0)) for o in state["completed_orders"])
+    return round(total, 2)
+
+
+def calculate_completed_order_value():
+    return round(sum(float(o.get("order_value_eur", 0.0)) for o in state["completed_orders"]), 2)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
@@ -113,7 +125,9 @@ DASHBOARD_HTML = """
             document.getElementById('snapshot').innerHTML = `
                 <p class="small">Droni attivi: <strong>${data.drone_count}</strong></p>
                 <p class="small">Ordini pendenti: <strong>${data.pending_orders}</strong></p>
-                <p class="small">Ordini completati: <strong>${data.completed_orders}</strong></p>
+                        <p class="small">Ordini completati: <strong>${data.completed_orders}</strong></p>
+                <p class="small">Guadagno totale ordini: <strong>€${data.total_order_value.toFixed(2)}</strong></p>
+                <p class="small">Guadagno ordini completati: <strong>€${data.completed_order_value.toFixed(2)}</strong></p>
             `;
         }
 
@@ -168,7 +182,7 @@ DASHBOARD_HTML = """
             `;
         }
 
-        function renderCompleted(completed) {
+        function renderCompleted(completed, completed_value) {
             if (!completed.length) {
                 document.getElementById('completed-orders').innerHTML = '<p class="small">Nessuna consegna registrata.</p>';
                 return;
@@ -181,6 +195,7 @@ DASHBOARD_HTML = """
                 </tr>
             `).join('');
             document.getElementById('completed-orders').innerHTML = `
+                <p class="small"><strong>Guadagno completato: €${completed_value.toFixed(2)}</strong></p>
                 <table>
                     <thead><tr><th>ID Ordine</th><th>Drone</th><th>Completato</th></tr></thead>
                     <tbody>${rows}</tbody>
@@ -200,7 +215,7 @@ DASHBOARD_HTML = """
                 renderSystem(system);
                 renderOrders(orders);
                 renderDrones(drones);
-                renderCompleted(completed);
+                renderCompleted(completed, system.completed_order_value);
             } catch (err) {
                 document.getElementById('snapshot').innerHTML = '<p class="small">Impossibile aggiornare la dashboard.</p>';
                 console.error(err);
@@ -253,10 +268,13 @@ def api_status():
         "drone_count": len(state["drones"]),
         "pending_orders": len(state["pending_orders"]),
         "completed_orders": len(state["completed_orders"]),
+        "total_order_value": calculate_total_order_value(),
+        "completed_order_value": calculate_completed_order_value(),
         "mqtt_broker": BROKER,
         "influx_url": INFLUX_URL,
         "connected": True
     })
+
 
 def record_assignment(topic, payload):
     if topic.startswith("comandi/"):
@@ -265,9 +283,25 @@ def record_assignment(topic, payload):
                 drone_id = topic.split('/', 1)[1]
                 order_id = payload.get("order_id")
                 if order_id:
-                    state["assignments"][drone_id] = order_id
-                    state["pending_orders"] = [o for o in state["pending_orders"] if o.get("order_id") != order_id]
-                    print(f" Ordine {order_id} assegnato a {drone_id}")
+                    already_assigned = any(
+                        isinstance(a, dict) and a.get("order_id") == order_id
+                        for a in state["assignments"].values()
+                    )
+                    already_completed = any(
+                        o.get("order_id") == order_id
+                        for o in state["completed_orders"]
+                    )
+                    if already_assigned or already_completed:
+                        print(f" Ordine {order_id} già assegnato/completato. Ignoro comando per {drone_id}.")
+                        return
+
+                    order_details = next((o for o in state["pending_orders"] if o.get("order_id") == order_id), None)
+                    if order_details:
+                        state["assignments"][drone_id] = order_details
+                        state["pending_orders"] = [o for o in state["pending_orders"] if o.get("order_id") != order_id]
+                        print(f" Ordine {order_id} assegnato a {drone_id}")
+                    else:
+                        print(f" Ordine {order_id} non trovato tra i pending_orders. Nessuna assegnazione per {drone_id}.")
         except Exception as e:
             print(f" Errore record assignment: {e}")
 
@@ -297,12 +331,15 @@ def on_message(client, userdata, message, properties=None):
             if previous_state == "IN_DELIVERY" and payload.get("state") == "RETURNING":
                 assigned_order = state["assignments"].pop(drone_id, None)
                 if assigned_order:
+                    order_id = assigned_order.get("order_id") if isinstance(assigned_order, dict) else assigned_order
+                    order_value = float(assigned_order.get("order_value_eur", 0.0)) if isinstance(assigned_order, dict) else 0.0
                     state["completed_orders"].append({
-                        "order_id": assigned_order,
+                        "order_id": order_id,
                         "drone_id": drone_id,
-                        "timestamp": int(time.time())
+                        "timestamp": int(time.time()),
+                        "order_value_eur": order_value
                     })
-                    print(f" Ordine {assigned_order} consegnato da {drone_id}")
+                    print(f" Ordine {order_id} consegnato da {drone_id}")
 
             point = (
                 Point("drone_telemetry")
