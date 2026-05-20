@@ -3,6 +3,7 @@
 import os
 import json
 import time
+import requests
 from pathlib import Path
 from kubernetes import client, config
 from influxdb_client import InfluxDBClient
@@ -57,9 +58,7 @@ class DroneMCP:
         with open(self.audit_file, "a") as f:
             f.write(json.dumps(entry) + "\n")
 
-    # ==========================================
-    # ️ FUNZIONI PER L'OBSERVER MCP (Read-Only)
-    # ==========================================
+#OBSERVER MCP
 
     def get_drones_status(self) -> dict:
         """Legge da Kubernetes lo stato attuale dei droni"""
@@ -169,23 +168,22 @@ class DroneMCP:
             return {"error": str(e), "total_pending": 0, "orders": []}
 
     def send_mqtt_command(self, target: str, action: str, force: bool = False, **kwargs) -> dict:
-        """Invia un comando MQTT ai droni"""
-        # Controllo Policy
+
         if not force and action in POLICY_LIMITS["requires_human_approval"]:
             return {
                 "allowed": False, 
                 "reason": f"Il comando {action} è distruttivo. Usa 'request_human_approval'."
             }
-
-        # Esecuzione
+  
+        #Esecuzione MQTT post approval
         topic = f"comandi/{target}" if target != "all" else "comandi/tutti"
         payload = json.dumps({"action": action, **kwargs})
         try:
             client_mqtt = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2, client_id=f"agent-action-{int(time.time())}")
             client_mqtt.connect(self.mqtt_broker, self.mqtt_port, 60)
-            client_mqtt.loop_start()               # Avvia il thread di rete in background
+            client_mqtt.loop_start()               
             msg_info = client_mqtt.publish(topic, payload, qos=1) 
-            msg_info.wait_for_publish()            # Ferma il codice finché non viene spedito davvero
+            msg_info.wait_for_publish()            
             client_mqtt.loop_stop()
             client_mqtt.disconnect()
             
