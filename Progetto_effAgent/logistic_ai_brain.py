@@ -35,13 +35,6 @@ def fetch_global_state():
         print(f"[!] Errore recupero stato globale: {e}")
         return None
     
-def calculate_state_memory(state_dict):
-    """
-    Crea impronta stato attuale con hash
-    """
-    state_string = json.dumps(state_dict, sort_keys=True)
-    
-    return hashlib.md5(state_string.encode('utf-8')).hexdigest()
 
 def triage_manager(summary, pending):
     decision = {"run_health": False, "run_logistic": False}
@@ -59,35 +52,6 @@ def triage_manager(summary, pending):
         decision["run_logistic"] = True
         
     return decision
-
-def triage_manager_llm(state_summary):
-    prompt = f"""
-    Sei il Router AI del sistema droni. Analizza questo stato e decidi chi deve intervenire.
-    RISPONDI SOLO CON UN JSON VALIDO CON QUESTA STRUTTURA:
-    {{"run_health": boolean, "run_logistic": boolean, "reason": "breve motivazione, max 5 parole"}}
-
-    REGOLE:
-    - run_health = true SE ci sono droni in manutenzione, OPPURE SE ci sono ordini pendenti ma nessun drone disponibile (droni_idle_disponibili == 0) per scalare la flotta.
-    - run_logistic = true SE ci sono ordini in sospeso (ordini_pendenti > 0) E ci sono droni disponibili per volare (droni_idle_disponibili > 0).
-    
-    STATO ATTUALE:
-    {json.dumps(state_summary, indent=2)}
-    """
-    try:
-        response = llm_client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"} 
-        )
-
-        usage = response.usage
-        print(f" [Costo Triage] Prompt: {usage.prompt_tokens} | Completamento: {usage.completion_tokens} | Totale: {usage.total_tokens}")
-
-        decision = json.loads(response.choices[0].message.content)
-        return decision
-    except Exception as e:
-        print(f"Errore nel Manager Triage: {e}")
-        return {"run_health": True, "run_logistic": True, "reason": "Fallback: run both"}
 
 def pending_approvals(mcp_url, mcp_token):
     """
@@ -119,7 +83,8 @@ def run_agent_loop():
 
     time.sleep(5)
 
-    last_state_mem = None
+
+    orders_a = set()
     
     while True:
         print("\n[1] Snapshot Sistema...")
@@ -139,35 +104,33 @@ def run_agent_loop():
             "ordini_pendenti": global_state['orders'].get('total_pending', 0),
             "droni_in_manutenzione": global_state['telemetry'].get('maintenance_count', 0)
         }
-
-        current_mem = calculate_state_memory(summary)
+               
         
-        if current_mem == last_state_mem:
-            print(" Nessun cambiamento rilevato nello stato.")
-            time.sleep(10)  
-            continue        
-            
-        #hash diverso. 
-        last_state_mem = current_mem
-        
-        print("[2] Triage Manager in corso...")
+        print("[2] Decisione in corso...")
         pending = pending_approvals(MCP_SERVER_URL, MCP_TOKEN)
+
+        full_order_list = [o for o in global_state['orders'].get('orders', []) if isinstance(o, dict)]
+        actual_orders_ids = {o.get("order_id") for o in full_order_list if o.get("order_id")}
+        orders_a.intersection_update(actual_orders_ids)
+
+        final_orders_list = [o for o in full_order_list if o.get("order_id") not in orders_a]
+        orders_available = final_orders_list[:idle_drones] if idle_drones > 0 else []
+
+        ready_drones = {id_drone: data for id_drone, data in telemetry_data.items() if data.get('state') == 'IDLE'}
+
+        summary["ordini_pendenti"] = len(final_orders_list)
+        summary["ordini_da_assegnare"] = final_orders_list
+
+        ########################
+
         decision = triage_manager(summary, pending)
         print(f" -> Decisione: {decision}")
 
 
-        full_order_list = global_state['orders'].get('orders', [])
-
-        orders_available = full_order_list[:idle_drones] if idle_drones > 0 else [] 
-
-        ready_drones = {id_drone: data for id_drone, data in telemetry_data.items() if data.get('state') == 'IDLE'}
-
-
-  
         health_context = (
             f"Droni operativi: {summary['droni_totali_k8s']}\n"
             f"Droni in manutenzione: {summary['droni_in_manutenzione']}\n"
-            f"Ordini pendenti totali: {summary['ordini_pendenti']}"
+            f"Ordini pendenti totali: {summary['ordini_pendenti']}\n"
             f"Droni IDLE disponibili: {summary['droni_idle_disponibili']}"
         )
 
@@ -188,7 +151,7 @@ def run_agent_loop():
             t1.start()
             
         if decision.get("run_logistic"):
-            t2 = threading.Thread(target=logistic_agent.run, args=(logistic_context,))
+            t2 = threading.Thread(target=logistic_agent.run, args=(logistic_context, orders_a))
             threads.append(t2)
             t2.start()
 

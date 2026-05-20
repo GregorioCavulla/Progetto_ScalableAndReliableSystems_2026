@@ -56,14 +56,13 @@ class LogisticAgent:
         resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers)
         return resp.json().get("result", {})
 
-    def run(self, injected_context):
+    def run(self, injected_context, orders_a):
         print(" [Logistic Worker] Avviato...")
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Assegna le missioni in base a questo stato:\n\n{injected_context}"}
         ]
 
-        assigned_order_ids = set()
         while True:
             try:
                 response = self.client.chat.completions.create(model=self.model, messages=messages, tools=self.tools, temperature=0.2)
@@ -80,38 +79,37 @@ class LogisticAgent:
 
 
                 for tool_call in msg.tool_calls:
-                            nome_tool = tool_call.function.name
-                            argomenti = json.loads(tool_call.function.arguments)
-                            
-                            print(f" [Logistic Agent] Esecuzione tool MCP: {nome_tool} | Argomenti: {argomenti}")
-                            
-                            if nome_tool == "send_mqtt_command" and "order_id" in argomenti:
-                                order_id = argomenti["order_id"]
-                                if order_id in assigned_order_ids:
-                                    print(f" [Logistic Agent] Ignoro comando duplicato per order_id {order_id}.")
-                                    result = {
-                                        "allowed": False,
-                                        "status": "rejected",
-                                        "reason": "order_id già assegnato a un altro drone in questo ciclo"
-                                    }
-                                    messages.append({
-                                        "role": "tool",
-                                        "tool_call_id": tool_call.id,
-                                        "name": nome_tool,
-                                        "content": json.dumps(result)
-                                    })
-                                    continue
-                                assigned_order_ids.add(order_id)
-                        
-                            result = self.call_mcp(nome_tool, argomenti)
-                            
-                 
+                    tool_name = tool_call.function.name
+                    argomenti = json.loads(tool_call.function.arguments)
+                    
+                    print(f" [Logistic Agent] Esecuzione tool: {tool_name} | Argomenti: {argomenti}")
+
+                    if tool_name == "send_mqtt_command" and argomenti.get("action") == "assign_mission":
+                        order_id = argomenti.get("order_id")
+                        if order_id in orders_a:
+                            result = {
+                                "allowed": False,
+                                "status": "rejected",
+                                "reason": "order_id già assegnato a un altro drone in questo ciclo"
+                            }
                             messages.append({
-                                "role": "tool", 
-                                "tool_call_id": tool_call.id, 
-                                "name": nome_tool, 
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": tool_name,
                                 "content": json.dumps(result)
                             })
+                            continue
+                        if order_id:
+                            orders_a.add(order_id)
+
+                    result = self.call_mcp(tool_name, argomenti)
+                    
+                    messages.append({
+                        "role": "tool", 
+                        "tool_call_id": tool_call.id, 
+                        "name": tool_name, 
+                        "content": json.dumps(result)
+                    })
 
             except Exception as e:
                     print(f" [!] Errore critico in Health Agent: {e}")
