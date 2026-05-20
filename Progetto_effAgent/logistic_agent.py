@@ -6,6 +6,7 @@ from openai import OpenAI
 SYSTEM_PROMPT = """
 Sei il Dispatcher Operativo della flotta di droni logistici.
 Il tuo UNICO obiettivo è leggere i dati forniti e invocare il tool di assegnazione rotte.
+Cerca di essere il più sintetico possibile e NON scrivere testo libero: SOLO chiamate al tool.
 I dati di telemetria e la coda ordini ti vengono forniti direttamente nel prompt. NON hai tool per leggere i dati.
 Attenzione al contesto fisico: il sistema opera su un'area metrica fino a ~5000 metri dall'HUB [0.0, 0.0]. L'usura dei droni va dal '0%' al '100%'. "
     I droni scaricano la batteria molto più in fretta e volano più lenti in proporzione al 'weight_kg' dell'ordine assegnato (max 5.0kg). "
@@ -63,54 +64,46 @@ class LogisticAgent:
             {"role": "user", "content": f"Assegna le missioni in base a questo stato:\n\n{injected_context}"}
         ]
 
-        while True:
-            try:
-                response = self.client.chat.completions.create(model=self.model, messages=messages, tools=self.tools, temperature=0.2)
-                msg = response.choices[0].message
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model, 
+                messages=messages, 
+                tools=self.tools, 
+                temperature=0.2
+            )
+            msg = response.choices[0].message
 
-                usage = response.usage
-                print(f"[Costo logistic] Prompt: {usage.prompt_tokens} | Completamento: {usage.completion_tokens} | Totale: {usage.total_tokens}")
+            usage = response.usage
+            print(f"[Costo logistic] Prompt: {usage.prompt_tokens} | Completamento: {usage.completion_tokens} | Totale: {usage.total_tokens}")
 
-                if not msg.tool_calls:
-                            print(" [Logistic Agent] Nessun tool chiamato. Terminazione.")
-                            return msg.content
+            if not msg.tool_calls:
+                print(" [Logistic Agent] Nessun tool chiamato. Terminazione.")
+                return msg.content
+                    
+            messages.append(msg)
+
+            for tool_call in msg.tool_calls:
+                tool_name = tool_call.function.name
+                argomenti = json.loads(tool_call.function.arguments)
+                
+                print(f" [Logistic Agent] Esecuzione tool: {tool_name} | Argomenti: {argomenti}")
+
+                if tool_name == "send_mqtt_command" and argomenti.get("action") == "assign_mission":
+                    order_id = argomenti.get("order_id")
+                    
+                    # Controllo anti-duplicazione ordini
+                    if order_id in orders_a:
+                        print(f" [!] Ordine {order_id} già assegnato in questo ciclo, salto.")
+                        continue
                         
-                messages.append(msg)
+                    if order_id:
+                        orders_a.add(order_id)
 
+                result = self.call_mcp(tool_name, argomenti)
 
-                for tool_call in msg.tool_calls:
-                    tool_name = tool_call.function.name
-                    argomenti = json.loads(tool_call.function.arguments)
-                    
-                    print(f" [Logistic Agent] Esecuzione tool: {tool_name} | Argomenti: {argomenti}")
+            print(" [Logistic Agent] Assegnazione completata. Spegnimento.")
+            return "Operazioni completate."
 
-                    if tool_name == "send_mqtt_command" and argomenti.get("action") == "assign_mission":
-                        order_id = argomenti.get("order_id")
-                        if order_id in orders_a:
-                            result = {
-                                "allowed": False,
-                                "status": "rejected",
-                                "reason": "order_id già assegnato a un altro drone in questo ciclo"
-                            }
-                            messages.append({
-                                "role": "tool",
-                                "tool_call_id": tool_call.id,
-                                "name": tool_name,
-                                "content": json.dumps(result)
-                            })
-                            continue
-                        if order_id:
-                            orders_a.add(order_id)
-
-                    result = self.call_mcp(tool_name, argomenti)
-                    
-                    messages.append({
-                        "role": "tool", 
-                        "tool_call_id": tool_call.id, 
-                        "name": tool_name, 
-                        "content": json.dumps(result)
-                    })
-
-            except Exception as e:
-                    print(f" [!] Errore critico in Health Agent: {e}")
-                    return "Errore di esecuzione."
+        except Exception as e:
+            print(f" [!] Errore critico in Logistic Agent: {e}")
+            return "Errore di esecuzione."

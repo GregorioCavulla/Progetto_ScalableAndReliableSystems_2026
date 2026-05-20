@@ -123,7 +123,8 @@ def approve(req_id):
     for req in approvals:
         if req["request_id"] == req_id and req["status"] == "pending":
             req["status"] = "approved"
-            # Eseguiamo immediatamente l'azione bypassando la policy dell'agente
+            req["consumed"] = True
+            #Approva immediatamente l'azione, bypassando i controlli di sicurezza (force=True)
             try:
                 action = req.get("action_type")
                 payload = req.get("payload", {})

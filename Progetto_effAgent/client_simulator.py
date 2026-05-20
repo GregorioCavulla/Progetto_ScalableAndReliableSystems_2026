@@ -72,7 +72,7 @@ def run():
     try:
         while True:
             # Crea un pacco / ordine ogni 10 - 25 secondi
-            time.sleep(random.randint(10, 35))
+            time.sleep(random.randint(5, 20))
             
             nuovo_ordine = generate_order()
             payload = json.dumps(nuovo_ordine)
