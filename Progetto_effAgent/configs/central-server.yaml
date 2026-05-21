@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: central-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: central-server
+  template:
+    metadata:
+      labels:
+        app: central-server
+    spec:
+      containers:
+      - name: central-server
+        image: beta-drone-system:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "central_server.py"]
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: MQTT_PORT
+          value: "1883"
+        - name: INFLUX_URL
+          value: "http://influxdb-service:8086"
+        - name: INFLUX_TOKEN
+          value: "REDACTED_INFLUX_TOKEN"
+        - name: INFLUX_ORG
+          value: "laboratorio"
+        - name: INFLUX_BUCKET
+          value: "iot_data"
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: central-server-service
+spec:
+  selector:
+    app: central-server
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
