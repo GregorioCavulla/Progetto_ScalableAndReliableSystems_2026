@@ -34,7 +34,7 @@ def fetch_global_state():
     global failure_counter, ai_suspended, suspension_reason, suspension_time
     
     headers = {"X-MCP-Token": MCP_TOKEN}
-    base_url = f"{MCP_SERVER_URL.rstrip('/')}/tool"
+    base_url = f"{MCP_SERVER_URL.rstrip('/')}/tool" 
     
     #Se fallisce n chiamate consecutive, sospendere llm
     try:
@@ -153,21 +153,7 @@ def run_agent_loop():
         final_orders_list = [o for o in full_order_list if o.get("order_id") not in orders_a]
         orders_available = final_orders_list[:idle_drones] if idle_drones > 0 else []
 
-        ready_drones = {}
-        for id_drone, data in telemetry_data.items():
-            if data.get('state') == 'IDLE':
-                batt = data.get('battery', 0)
-                wear = data.get('wear', 0)
-                
-                max_weight = (batt - 15) / 10.0
-                if wear > 20: max_weight = min(max_weight, 3.0) 
-                max_weight = max(0, min(5.0, max_weight)) 
-                
-                ready_drones[id_drone] = {
-                    "battery_percent": batt,
-                    "wear_percent": wear,
-                    "MAX_CAPACITY_KG": round(max_weight, 1) 
-                }
+        ready_drones = {id_drone: data for id_drone, data in telemetry_data.items() if data.get('state') == 'IDLE'}
 
         summary["ordini_pendenti"] = len(final_orders_list)
         summary["ordini_da_assegnare"] = final_orders_list

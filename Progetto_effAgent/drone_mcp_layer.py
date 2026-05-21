@@ -173,39 +173,6 @@ class DroneMCP:
                 "allowed": False, 
                 "reason": f"Il comando {action} è distruttivo. Usa 'request_human_approval'."
             }
-        
-        #check manuale per peso e usura in caso di assign_mission
-        if action == "assign_mission":
-            order_id = kwargs.get("order_id")
-            weight = float(kwargs.get("weight_kg", 0.0))
-         
-            telemetry = self.get_drones_telemetry(1).get("drones_status", {})
-            
-            if target not in telemetry:
-                return {"allowed": False, "error": f"Rifiutato: Il drone '{target}' NON ESISTE."}
-            
-            drone_state = telemetry[target]
-            if drone_state["state"] != "IDLE":
-                return {"allowed": False, "error": f"Rifiutato: Il drone '{target}' è in stato {drone_state['state']}, deve essere IDLE."}
-
-            battery = float(drone_state["battery"])
-            wear = float(drone_state["wear"])
-           
-            min_battery_required = 15.0 + (weight * 10.0) 
-            
-            if battery < min_battery_required:
-                return {"allowed": False, "error": f"Rifiutato: Batteria al {battery}% è insufficiente per sollevare {weight}kg. Serve almeno {min_battery_required}%."}
-            
-            if wear > 20.0 and weight > 3.0:
-                return {"allowed": False, "error": f"Rifiutato: Drone troppo logorato ({wear}%) per un carico pesante ({weight}kg). Rischio schianto."}
-
-            if not hasattr(self, "assigned_orders_cache"):
-                self.assigned_orders_cache = set()
-            
-            if order_id in self.assigned_orders_cache:
-                return {"allowed": False, "error": f"Rifiutato: L'ordine {order_id} è GIA' STATO ASSEGNATO a un altro drone."}
-            
-            self.assigned_orders_cache.add(order_id)
   
         #Esecuzione MQTT post approval
         topic = f"comandi/{target}" if target != "all" else "comandi/tutti"

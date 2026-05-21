@@ -96,6 +96,8 @@ class HealthAgent:
 
     def run(self, injected_context):
         print(" [Health Agent] Analisi stato infrastruttura avviata...")
+
+        print(f"\nINPUT RICEVUTO DA HEALTH AGENT:\n{injected_context}\n<<<<\n")
         
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
