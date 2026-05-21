@@ -70,7 +70,7 @@ class LogisticAgent:
                 model=self.model, 
                 messages=messages, 
                 tools=self.tools, 
-                temperature=0.2
+                temperature=0.1
             )
             msg = response.choices[0].message
 
