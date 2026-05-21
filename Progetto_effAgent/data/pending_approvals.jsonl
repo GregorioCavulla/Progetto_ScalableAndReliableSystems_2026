@@ -1,1 +1,0 @@
-{"request_id": "REQ-test", "action_type": "scale_deployment", "payload": {"replicas": 10}, "reason": "Necessario per gestire traffico elevato", "status": "approved"}
