@@ -11,11 +11,6 @@ I dati di telemetria e la coda ordini ti vengono forniti direttamente nel prompt
 Attenzione al contesto fisico: il sistema opera su un'area metrica fino a ~5000 metri dall'HUB [0.0, 0.0]. L'usura dei droni va dal '0%' al '100%'. "
 REGOLE DI ASSEGNAZIONE (TASSATIVE):
 1. Gli ordini con priorità High vanno smaltiti per primi.
-2. Controlla il parametro "MAX_CAPACITY_KG" di ogni drone. NON assegnare MAI un ordine a un drone se il "weight_kg" dell'ordine supera il "MAX_CAPACITY_KG" del drone.
-3. Se non ci sono droni in grado di sollevare un ordine pesante, lascialo in sospeso.
-4. Passa i dati esatti senza inventare ID o coordinate fuori dal raggio metrico (0.0 a 5000.0).
-GESTIONE ERRORI:
-Se il tool ti risponde "Rifiutato", significa che hai violato una regola fisica o di logica. Leggi il messaggio di errore, correggi l'abbinamento drone/ordine e richiama il tool.
 Ogni ordine è unico e può essere assegnato a un solo drone: non usare mai lo stesso order_id più di una volta.
 REGOLE OBBLIGATORIE:
 1. NON spiegare il tuo ragionamento in nessun caso.
@@ -45,18 +40,24 @@ class LogisticAgent:
                             "action": {"type": "string", "enum": ["assign_mission"]},
                             "order_id": {"type": "string"},
                             "target_lat": {"type": "number"},
-                            "target_lon": {"type": "number"}
+                            "target_lon": {"type": "number"},
+                            "weight_kg": {"type": "number"}
                         },
-                        "required": ["target", "action", "order_id"]
-                    }
+                        "required": ["target", "action", "order_id"],
+                        "additionalProperties": False
+                    },
+                    "strict": True
                 }
             }
         ]
 
     def call_mcp(self, name, args):
         headers = {"X-MCP-Token": self.token}
-        resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers)
-        return resp.json().get("result", {})
+        try:
+            resp = requests.post(f"{self.mcp_url}/tool", json={"name": name, "args": args}, headers=headers, timeout=5)
+            return resp.json().get("result", {})
+        except Exception:
+            return {"error": "Impossibile comunicare con MCP"}
 
     def run(self, injected_context, orders_a):
         print(" [Logistic Worker] Avviato...")
@@ -70,26 +71,42 @@ class LogisticAgent:
                 model=self.model, 
                 messages=messages, 
                 tools=self.tools, 
-                temperature=0.1
+                temperature=0.1, 
+                max_tokens=2200   
             )
             msg = response.choices[0].message
-
             usage = response.usage
             print(f"[Costo logistic] Prompt: {usage.prompt_tokens} | Completamento: {usage.completion_tokens} | Totale: {usage.total_tokens}")
 
             if not msg.tool_calls:
-                print(" [Logistic Agent] Nessun tool chiamato. Terminazione.")
-                return msg.content
+                return "Nessuna assegnazione eseguita."
                     
             messages.append(msg)
 
             for tool_call in msg.tool_calls:
                 tool_name = tool_call.function.name
-                argomenti = json.loads(tool_call.function.arguments)
                 
-                print(f" [Logistic Agent] Esecuzione tool: {tool_name} | Argomenti: {argomenti}")
+                # 1. Whitelisting
+                if tool_name != "send_mqtt_command":
+                    print(f" [!] Bloccata allucinazione tool: {tool_name}")
+                    continue
 
-                if tool_name == "send_mqtt_command" and argomenti.get("action") == "assign_mission":
+                # 2. Safe Parsing
+                try:
+                    argomenti = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    print(" [!] Bloccata allucinazione argomenti JSON")
+                    continue
+                
+                # 3. Sanitizzazione Coordinate (Protezione Spaziale)
+                lat = float(argomenti.get("target_lat", 0.0))
+                lon = float(argomenti.get("target_lon", 0.0))
+                if not (-5000.0 <= lat <= 5000.0) or not (-5000.0 <= lon <= 5000.0):
+                    print(f" [!] Bloccata operazione: Coordinate fuori dal recinto metrico (Lat: {lat}, Lon: {lon})")
+                    # Diamo feedback all'AI se vogliamo fargli ritentare, qui semplicemente lo ignoriamo
+                    continue
+
+                if argomenti.get("action") == "assign_mission":
                     order_id = argomenti.get("order_id")
                     
                     if order_id in orders_a:
@@ -99,11 +116,10 @@ class LogisticAgent:
                     if order_id:
                         orders_a.add(order_id)
 
-                result = self.call_mcp(tool_name, argomenti)
+                self.call_mcp(tool_name, argomenti)
 
-            print(" [Logistic Agent] Assegnazione completata. Spegnimento.")
-            return "Operazioni completate."
+            return "Operazioni logistica completate."
 
         except Exception as e:
-            print(f" [!] Errore critico in Logistic Agent: {e}")
+            print(f" [!] Errore in Logistic Agent: {e}")
             return "Errore di esecuzione."
