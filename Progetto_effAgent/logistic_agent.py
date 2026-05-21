@@ -85,25 +85,21 @@ class LogisticAgent:
 
             for tool_call in msg.tool_calls:
                 tool_name = tool_call.function.name
-                
-                # 1. Whitelisting
+
                 if tool_name != "send_mqtt_command":
                     print(f" [!] Bloccata allucinazione tool: {tool_name}")
                     continue
 
-                # 2. Safe Parsing
                 try:
                     argomenti = json.loads(tool_call.function.arguments)
                 except json.JSONDecodeError:
                     print(" [!] Bloccata allucinazione argomenti JSON")
                     continue
                 
-                # 3. Sanitizzazione Coordinate (Protezione Spaziale)
                 lat = float(argomenti.get("target_lat", 0.0))
                 lon = float(argomenti.get("target_lon", 0.0))
                 if not (-5000.0 <= lat <= 5000.0) or not (-5000.0 <= lon <= 5000.0):
                     print(f" [!] Bloccata operazione: Coordinate fuori dal recinto metrico (Lat: {lat}, Lon: {lon})")
-                    # Diamo feedback all'AI se vogliamo fargli ritentare, qui semplicemente lo ignoriamo
                     continue
 
                 if argomenti.get("action") == "assign_mission":
