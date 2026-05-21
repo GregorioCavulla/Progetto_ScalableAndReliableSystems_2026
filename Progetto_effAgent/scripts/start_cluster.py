@@ -71,6 +71,7 @@ def main():
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/influxdb || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/mcp-server || true", allow_failure=True)
     run_command("kubectl wait --for=condition=available --timeout=120s deployment/logistic-ai-brain || true", allow_failure=True)
+    run_command("kubectl wait --for=condition=available --timeout=120s deployment/logistic-ai-brain || true", allow_failure=True)
 
     # 6.5 Port-forward per InfluxDB (necessario per accesso locale)
     print("\n6.5️⃣ Avvio port-forward per InfluxDB sulla porta locale 8086...")
