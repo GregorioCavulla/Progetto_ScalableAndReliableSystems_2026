@@ -51,7 +51,7 @@ class HealthAgent:
                         "type": "object", 
                         "properties": {
                             "action_type": {"type": "string",
-                            "enum": ["scale_drone_deployment", "send_mqtt_command"] # 👈 AGGIUNGI QUESTO
+                            "enum": ["scale_drone_deployment", "send_mqtt_command"]
                             }, 
                             "payload": {"type": "object", "description": "Dettagli dell'azione, max 5 words. es. {'replicas': 7}"},
                             "reason": {"type": "string"}
@@ -128,12 +128,10 @@ class HealthAgent:
                     
                     result = self.call_mcp(tool_name, argomenti)
                     
-                    # Tool 1: L'agente chiede approvazione (Si spegne subito dopo)
                     if tool_name == "request_human_approval":
                         print(" [Health Agent] Richiesta inviata. Disconnessione in attesa dell'umano...")
                         return "Richiesta in attesa. Spegnimento."
                     
-                    # Tool 2: L'agente scala l'infrastruttura (<6 repliche)
                     if tool_name == "scale_drone_deployment":
                         print(f" [Health Agent] Comando di scaling inviato ({argomenti}). Disconnessione...")
                         return f"Scaling avviato con successo. Risposta: {result}"
@@ -145,7 +143,6 @@ class HealthAgent:
                         "content": json.dumps(result)
                     })
                     
-                    # Tool 3: L'agente controlla se ci sono pratiche aperte
                     if tool_name == "check_pending_approvals":
                         pending = result.get("pending", []) if isinstance(result, dict) else []
                         if len(pending) > 0:

@@ -17,8 +17,8 @@ MODEL_NAME = "gemini-2.5-pro"
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8101")
 MCP_TOKEN = os.getenv("MCP_TOKEN", "REDACTED_MCP_TOKEN")
 
-#PROTEZIONE IN CASO DI PROBLEMI COMUNICAZIONE MCP per evitare spreco di token degli agenti
-FAILURE_THRESHOLD = int(os.getenv("FAILURE_THRESHOLD", "50"))  # Numero di fallimenti consecutivi prima della sospensione
+#PROTEZIONE IN CASO DI PROBLEMI COMUNICAZIONE MCP
+FAILURE_THRESHOLD = int(os.getenv("FAILURE_THRESHOLD", "20"))  # Numero di fallimenti consecutivi prima della sospensione
 failure_counter = 0
 ai_suspended = False
 suspension_reason = None
@@ -43,7 +43,7 @@ def fetch_global_state():
         orders = requests.post(base_url, json={"name": "get_pending_orders"}, headers=headers, timeout=15).json().get("result", {})
    
         if failure_counter > 0:
-            print(f"Sistema ripristinato - Contatore azzerato (era {failure_counter})")
+            print(f"Sistema ripristinato")
             failure_counter = 0
         
         return {"status": drones, "telemetry": telemetry, "orders": orders}
