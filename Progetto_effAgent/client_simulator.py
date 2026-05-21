@@ -5,7 +5,6 @@ import json
 import random
 import uuid
 
-# --- Configurazione Ambiente ---
 BROKER = os.getenv("MQTT_BROKER", "localhost")
 PORT = int(os.getenv("MQTT_PORT", 1883))
 CLIENT_ID = os.getenv("CLIENT_SIM_ID", f"client-sim-{random.randint(1, 100)}")
@@ -15,7 +14,7 @@ TOPIC_ORDINI = "business/ordini/nuovi"
 # Area di copertura Hub (sistema di riferimento metrico in metri: HUB = [0, 0])
 BASE_LAT = 0.0
 BASE_LON = 0.0
-RADIUS = 5000.0 # circa 5km in metri
+RADIUS = 5000.0 
 
 def generate_random_coordinate():
     lat = BASE_LAT + random.uniform(-RADIUS, RADIUS)
@@ -72,7 +71,7 @@ def run():
     try:
         while True:
             # Crea un pacco / ordine ogni 10 - 25 secondi
-            time.sleep(random.randint(5, 20))
+            time.sleep(random.randint(15, 25))
             
             nuovo_ordine = generate_order()
             payload = json.dumps(nuovo_ordine)

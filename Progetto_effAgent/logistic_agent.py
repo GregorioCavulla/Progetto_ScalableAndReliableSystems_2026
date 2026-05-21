@@ -9,13 +9,14 @@ Il tuo UNICO obiettivo è leggere i dati forniti e invocare il tool di assegnazi
 Cerca di essere il più sintetico possibile e NON scrivere testo libero: SOLO chiamate al tool.
 I dati di telemetria e la coda ordini ti vengono forniti direttamente nel prompt. NON hai tool per leggere i dati.
 Attenzione al contesto fisico: il sistema opera su un'area metrica fino a ~5000 metri dall'HUB [0.0, 0.0]. L'usura dei droni va dal '0%' al '100%'. "
-    I droni scaricano la batteria molto più in fretta e volano più lenti in proporzione al 'weight_kg' dell'ordine assegnato (max 5.0kg). "
-    Quando stabilisci le tue scelte, bilancia sempre: 
-    1. La priorità dell'ordine ('high', 'normal', 'low'). 
-    2. Il 'weight_kg' da sollevare contro la percentuale di batteria del drone. 
-    3. Il tasso di usura del mezzo. "
-    Se un ordine prioritario è molto pesante (es. 4-5 kg), NON assegnargli un drone logorato (>80%) o con poca batteria, l'anomalia causerebbe uno schianto e avarierebbe il mezzo. "
-    Ogni ordine è unico e può essere assegnato a un solo drone: non usare mai lo stesso order_id più di una volta.
+REGOLE DI ASSEGNAZIONE (TASSATIVE):
+1. Gli ordini con priorità High vanno smaltiti per primi.
+2. Controlla il parametro "MAX_CAPACITY_KG" di ogni drone. NON assegnare MAI un ordine a un drone se il "weight_kg" dell'ordine supera il "MAX_CAPACITY_KG" del drone.
+3. Se non ci sono droni in grado di sollevare un ordine pesante, lascialo in sospeso.
+4. Passa i dati esatti senza inventare ID o coordinate fuori dal raggio metrico (0.0 a 5000.0).
+GESTIONE ERRORI:
+Se il tool ti risponde "Rifiutato", significa che hai violato una regola fisica o di logica. Leggi il messaggio di errore, correggi l'abbinamento drone/ordine e richiama il tool.
+Ogni ordine è unico e può essere assegnato a un solo drone: non usare mai lo stesso order_id più di una volta.
 REGOLE OBBLIGATORIE:
 1. NON spiegare il tuo ragionamento in nessun caso.
 2. NON scrivere testo libero, saluti, preamboli o conclusioni.
@@ -91,7 +92,6 @@ class LogisticAgent:
                 if tool_name == "send_mqtt_command" and argomenti.get("action") == "assign_mission":
                     order_id = argomenti.get("order_id")
                     
-                    # Controllo anti-duplicazione ordini
                     if order_id in orders_a:
                         print(f" [!] Ordine {order_id} già assegnato in questo ciclo, salto.")
                         continue

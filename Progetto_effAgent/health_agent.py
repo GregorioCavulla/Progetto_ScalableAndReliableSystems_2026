@@ -50,7 +50,9 @@ class HealthAgent:
                     "parameters": {
                         "type": "object", 
                         "properties": {
-                            "action_type": {"type": "string"}, 
+                            "action_type": {"type": "string",
+                            "enum": ["scale_drone_deployment", "send_mqtt_command"] # 👈 AGGIUNGI QUESTO
+                            }, 
                             "payload": {"type": "object", "description": "Dettagli dell'azione, max 5 words. es. {'replicas': 7}"},
                             "reason": {"type": "string"}
                         },
