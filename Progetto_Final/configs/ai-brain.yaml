@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logistic-ai-brain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logistic-ai-brain
+  template:
+    metadata:
+      labels:
+        app: logistic-ai-brain
+    spec:
+      containers:
+      - name: logistic-ai-brain
+        image: progetto-final-image:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "logistic_ai_brain.py"]
+        env:
+        - name: MCP_SERVER_URL
+          value: "http://mcp-server-service:8101"
+        - name: MCP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: mcp-token
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: openai-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi

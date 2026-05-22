@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client-simulator
+  template:
+    metadata:
+      labels:
+        app: client-simulator
+    spec:
+      containers:
+      - name: client
+        image: progetto-final-image:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "client_simulator.py"]
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: MQTT_PORT
+          value: "1883"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

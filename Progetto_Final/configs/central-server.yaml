@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: central-server-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: central-server-role
+  namespace: default
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments", "deployments/scale"]
+  verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: central-server-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: central-server-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: central-server-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: central-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: central-server
+  template:
+    metadata:
+      labels:
+        app: central-server
+    spec:
+      serviceAccountName: central-server-sa
+      containers:
+      - name: central-server
+        image: progetto-final-image:latest
+        imagePullPolicy: Never
+        command: ["python", "-u", "central_server.py"]
+        env:
+        - name: MQTT_BROKER
+          value: "mosquitto-service"
+        - name: MQTT_PORT
+          value: "1883"
+        - name: INFLUX_URL
+          value: "http://influxdb-service:8086"
+        - name: INFLUX_ORG
+          value: "laboratorio"
+        - name: INFLUX_BUCKET
+          value: "iot_data"
+        - name: INFLUX_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: influx-token
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: central-server-service
+spec:
+  selector:
+    app: central-server
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
