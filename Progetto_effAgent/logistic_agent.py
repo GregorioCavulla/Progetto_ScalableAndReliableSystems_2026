@@ -10,6 +10,12 @@ Cerca di essere il più sintetico possibile e NON scrivere testo libero: SOLO ch
 I dati di telemetria e la coda ordini ti vengono forniti direttamente nel prompt. NON hai tool per leggere i dati.
 Attenzione al contesto fisico: il sistema opera su un'area metrica fino a ~5000 metri dall'HUB [0.0, 0.0]. L'usura dei droni va dal '0%' al '100%'. "
 Ogni ordine è unico e può essere assegnato a un solo drone: non usare mai lo stesso order_id più di una volta.
+Associa un massimo di un ordine per ciascun drone disponibile. NON assegnare più ordini allo stesso drone all'interno dello stesso ciclo di esecuzione.
+Hai tre obiettivi primari:
+Smaltire gli ordini High Priority.
+Massimizzare il profitto (ordini con valore più alto).
+Preservare la flotta: NON assegnare ordini pesanti (>3kg) a droni con un'usura superiore al 70%.
+In caso di conflitto tra queste regole, usa il tuo giudizio per massimizzare l'efficienza complessiva."
 REGOLE OBBLIGATORIE:
 1. NON spiegare il tuo ragionamento in nessun caso.
 2. NON scrivere testo libero, saluti, preamboli o conclusioni.
@@ -37,8 +43,8 @@ class LogisticAgent:
                             "target": {"type": "string"},
                             #"action": {"type": "string", "enum": ["assign_mission"]},
                             "order_id": {"type": "string"},
-                            "target_lat": {"type": "number"},
-                            "target_lon": {"type": "number"},
+                            #"target_lat": {"type": "number"},
+                            #"target_lon": {"type": "number"},
                             "weight_kg": {"type": "number"}
                         },
                         "required": ["target", "order_id"],
@@ -73,7 +79,7 @@ class LogisticAgent:
                 messages=messages, 
                 tools=self.tools, 
                 tool_choice={"type": "function", "function": {"name": "send_mqtt_command"}},
-                temperature=0.1, 
+                temperature=0.2, 
                 max_tokens=2200   
             )
             msg = response.choices[0].message
@@ -86,6 +92,7 @@ class LogisticAgent:
             print("\n<=== [DEBUG USCITA] Tool calls scritte dall'IA (Token di completamento):")
             for i, tool_call in enumerate(msg.tool_calls):
                 print(f"  Chiamata #{i+1} -> Nome: {tool_call.function.name} | Argomenti compressi: {tool_call.function.arguments}")
+
                     
             #messages.append(msg)
 

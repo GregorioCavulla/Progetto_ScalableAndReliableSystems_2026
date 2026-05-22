@@ -6,10 +6,10 @@ SYSTEM_PROMPT = """
 Sei il Direttore dell'Infrastruttura (Health Agent) della flotta di droni.
 Il tuo UNICO obiettivo è leggere lo stato del sistema e decidere se scalare i droni o richiedere manutenzione, usando esclusivamente i tool a disposizione.
 REGOLE OBBLIGATORIE
-1. NON spiegare il tuo ragionamento. NON scrivere testo libero. Chiama direttamente il tool. 
-2. Scala il numero di droni se non ce ne sono abbastanza per gli ordini pendenti o per sostituire quelli in manutenzione. 
-3. - Se il numero totale di repliche necessarie è <= 6, usa DIRETTAMENTE il tool `scale_drone_deployment`.
-   - Se il numero totale di repliche necessarie è > 6, NON PUOI scalare da solo. DEVI usare obbligatoriamente `request_human_approval`.
+1. NON spiegare il tuo ragionamento. NON scrivere testo libero. Chiama direttamente il tool.
+DIRETTIVE DI SICUREZZA ASSOLUTE (TASSATIVE):
+- Se il numero TOTALE di repliche che ritieni necessario è MINORE O UGUALE A 6 (Repliche <= 6): hai piena autonomia. Chiama DIRETTOMETAMENTE il tool `scale_drone_deployment`.
+- Se il numero TOTALE di repliche necessarie è MAGGIORE DI 6 (Repliche > 6): NON HAI L'AUTORIZZAZIONE per scalare da solo. È VIETATO chiamare `scale_drone_deployment`. DEVI usare obbligatoriamente il tool `request_human_approval`.
 4. - Se controlli le approvazioni con `check_pending_approvals` e vedi che una tua richiesta precedente è in stato "approved", l'infrastruttura è già stata scalata. NON chiamare `scale_drone_deployment`. Termina l'esecuzione.
 5. Se devi scalare i droni e il numero totale supera le 6 repliche:
    -> STEP 1: Chiama SEMPRE prima `check_pending_approvals`.
@@ -35,8 +35,8 @@ class HealthAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "replicas": {"type": "integer"},
-                            "force": {"type": "boolean", "description": "Usa true per applicare lo scaling."}
+                            "replicas": {"type": "integer"}
+                            #"force": {"type": "boolean", "description": "Usa true per applicare lo scaling."}
                         },
                         "required": ["replicas"],
                         "additionalProperties": False 
@@ -111,13 +111,13 @@ class HealthAgent:
                     model=self.model, 
                     messages=messages, 
                     tools=self.tools,
-                    temperature=0.1,
+                    temperature=0.2,
                     max_tokens=2050 
                 )
                 
                 msg = response.choices[0].message
                 usage = response.usage
-                print(f" [Costo health] Prompt: {usage.prompt_tokens} | Completamento: {usage.completion_tokens}")
+                print(f" [Costo health] Prompt: {usage.prompt_tokens} | Completamento: {usage.completion_tokens} | Totale: {usage.total_tokens}")
                 
                 if not msg.tool_calls:
                     print(" [Health Agent] Nessun tool chiamato. Terminazione naturale.")
@@ -133,7 +133,6 @@ class HealthAgent:
                         messages.append({"role": "tool", "tool_call_id": tool_call.id, "name": tool_name, "content": json.dumps({"error": error_msg})})
                         continue
 
-        
                     try:
                         argomenti = json.loads(tool_call.function.arguments)
                     except json.JSONDecodeError:
@@ -172,7 +171,7 @@ class HealthAgent:
                             return "Azione gestita dal livello umano. Spegnimento."
                             
             except Exception as e:
-                print(f" [!] Errore critico in Health Agent: {e}")
+                print(f" Errore critico in Health Agent: {e}")
                 return "Errore di esecuzione."
 
-        return " [!] Limite iterazioni raggiunto."
+        return " Limite iterazioni raggiunto."

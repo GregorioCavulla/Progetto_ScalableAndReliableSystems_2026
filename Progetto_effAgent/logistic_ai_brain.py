@@ -13,7 +13,8 @@ from logistic_agent import LogisticAgent
 
 API_BASE = "https://litellm-proxy-1013932759942.europe-west8.run.app/v1"
 API_KEY = os.getenv("OPENAI_API_KEY", "")
-MODEL_NAME = "gemini-2.5-pro"
+MODEL_NAME2 = "gemini-2.5-pro"
+MODEL_NAME = "vertex_ai/mistral-small-2503"
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8101")
 MCP_TOKEN = os.getenv("MCP_TOKEN", "REDACTED_MCP_TOKEN")
 
@@ -156,11 +157,12 @@ def run_agent_loop():
             [o for o in full_order_list if o.get("order_id") not in orders_a],
             key=lambda o: priority_order.get(o.get("priority"), 999)
         )
-        orders_available = final_orders_list[:idle_drones] if idle_drones > 0 else []
+        #orders_available = final_orders_list[:idle_drones] if idle_drones > 0 else []
 
         ready_drones = {id_drone: data for id_drone, data in telemetry_data.items() if data.get('state') == 'IDLE'}
 
-        simplified_orders = [{"id": o.get("order_id"), "priority": o.get("priority"), "kg": o.get("weight_kg")} for o in final_orders_list[:idle_drones]] if idle_drones > 0 else []   
+        max_orders = min(idle_drones + 2, len(final_orders_list))
+        simplified_orders = [{"id": o.get("order_id"), "priority": o.get("priority"), "kg": o.get("weight_kg")} for o in final_orders_list[:max_orders]] if idle_drones > 0 else []   
 
         summary["ordini_pendenti"] = len(final_orders_list)
         summary["ordini_da_assegnare"] = final_orders_list
@@ -200,7 +202,7 @@ def run_agent_loop():
         for t in threads:
             t.join()
             
-        time.sleep(20)
+        time.sleep(10)
 
 if __name__ == "__main__":
     run_agent_loop()
