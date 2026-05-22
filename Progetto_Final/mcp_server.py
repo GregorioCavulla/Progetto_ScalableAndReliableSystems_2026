@@ -1,12 +1,22 @@
+import os
 from flask import Flask, request, jsonify
 from drone_mcp_layer import DroneMCP
 
 app = Flask(__name__)
 mcp = DroneMCP()
 
+# Token letto da env (popolato via Kubernetes Secret); fallback per esecuzione locale.
+MCP_TOKEN = os.getenv("MCP_TOKEN", "REDACTED_MCP_TOKEN")
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
 @app.route("/tool", methods=["POST"])
 def execute_tool():
-    default_token = "REDACTED_MCP_TOKEN"
+    default_token = MCP_TOKEN
     token = request.headers.get("X-MCP-Token")
     
     data = request.json

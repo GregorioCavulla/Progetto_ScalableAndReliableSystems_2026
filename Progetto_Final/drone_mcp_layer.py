@@ -24,7 +24,6 @@ class DroneMCP:
         self.audit_file = self.data_dir / "audit_actions.jsonl"
         self.approvals_file = self.data_dir / "pending_approvals.jsonl"
 
-        # 1. Setup Kubernetes
         try:
             config.load_incluster_config() 
         except:
@@ -167,15 +166,17 @@ class DroneMCP:
         except Exception as e:
             return {"error": str(e), "total_pending": 0, "orders": []}
 
-    def send_mqtt_command(self, target: str, action: str, force: bool = False, **kwargs) -> dict:
-
-        if not force and action in POLICY_LIMITS["requires_human_approval"]:
+    def send_mqtt_command(self, target: str, action: str, **kwargs) -> dict:
+        """Invia un comando MQTT. Le azioni distruttive sono bloccate: l'agente deve
+        passare per request_human_approval. L'esecuzione approvata avviene
+        direttamente dalla dashboard, non da questo metodo.
+        """
+        if action in POLICY_LIMITS["requires_human_approval"]:
             return {
-                "allowed": False, 
+                "allowed": False,
                 "reason": f"Il comando {action} è distruttivo. Usa 'request_human_approval'."
             }
-  
-        #Esecuzione MQTT post approval
+
         topic = f"comandi/{target}" if target != "all" else "comandi/tutti"
         payload = json.dumps({"action": action, **kwargs})
         try:
@@ -192,16 +193,18 @@ class DroneMCP:
         except Exception as e:
             return {"allowed": False, "error": str(e)}
 
-    def scale_drone_deployment(self, replicas: int, force: bool = False) -> dict:
-        """Modifica le repliche del deployment droni su Kubernetes"""
-        # Controllo Policy
-        if not force and replicas > POLICY_LIMITS["max_drones_auto"]:
+    def scale_drone_deployment(self, replicas: int) -> dict:
+        """Modifica le repliche del deployment droni su Kubernetes.
+        Se replicas supera il limite di automazione, blocca e indirizza all'approvazione umana:
+        l'eventuale approvazione esegue lo scaling direttamente dalla dashboard
+        (vedi human_approval_manager.py), senza ri-passare da questo metodo.
+        """
+        if replicas > POLICY_LIMITS["max_drones_auto"]:
             return {
                 "allowed": False,
                 "reason": f"Richiesta di {replicas} droni supera il limite di automazione ({POLICY_LIMITS['max_drones_auto']}). Usa 'request_human_approval'."
             }
 
-        # Esecuzione
         try:
             body = {'spec': {'replicas': replicas}}
             self.k8s_apps.patch_namespaced_deployment_scale(
@@ -210,44 +213,16 @@ class DroneMCP:
                 body=body
             )
             self._log_action("scale_deployment", {"replicas": replicas})
-
-            if force:
-                self._consume_approval_for_replicas(replicas)
-
             return {"allowed": True, "status": "success", "message": f"Infrastruttura scalata a {replicas} droni"}
         except Exception as e:
             return {"allowed": False, "error": str(e)}
 
-    def _consume_approval_for_replicas(self, replicas: int):
-        approvals = []
-        if not self.approvals_file.exists():
-            return
-
-        try:
-            with open(self.approvals_file, "r") as f:
-                for line in f:
-                    approvals.append(json.loads(line.strip()))
-        except Exception:
-            return
-
-        changed = False
-        for entry in approvals:
-            if entry.get("status") == "approved" and not entry.get("consumed", False):
-                if entry.get("payload", {}).get("replicas") == replicas:
-                    entry["consumed"] = True
-                    changed = True
-                    break
-
-        if changed:
-            try:
-                with open(self.approvals_file, "w") as f:
-                    for entry in approvals:
-                        f.write(json.dumps(entry) + "\n")
-            except Exception:
-                pass
-
     def request_human_approval(self, action_type: str, reason: str, payload: dict = None) -> dict:
-        """Strumento per chiedere permesso quando bloccato dalle policy"""
+        """Registra una richiesta di approvazione e si dimentica di averla fatta.
+        Se l'umano approva, la dashboard esegue l'azione direttamente sul cluster.
+        Al ciclo successivo l'agente vedrà il nuovo stato leggendo Kubernetes,
+        non monitorando lo stato dell'approvazione.
+        """
         if payload is None:
             payload = {}
         request_id = f"REQ-{int(time.time())}"
@@ -256,36 +231,37 @@ class DroneMCP:
             "action_type": action_type,
             "payload": payload,
             "reason": reason,
-            "status": "pending",
-            "consumed": False
+            "status": "pending"
         }
         with open(self.approvals_file, "a") as f:
             f.write(json.dumps(entry) + "\n")
-            
+
         self._log_action("request_human_approval", entry)
         return {"status": "pending_approval", "request_id": request_id, "message": "Richiesta inviata all'operatore umano."}
 
     def check_pending_approvals(self, request_id: str = None) -> dict:
-        """Controlla se ci sono approvazioni umane pendenti o approvate"""
+        """Ritorna solo le richieste ancora pending. Le approvate/rifiutate sono
+        considerate chiuse: l'agente le ignora e si basa sullo stato reale del cluster.
+        """
         if not self.approvals_file.exists():
-            return {"pending": [], "approved": []}
-        
+            return {"pending": []}
+
         pending = []
-        approved = []
         try:
             with open(self.approvals_file, "r") as f:
                 for line in f:
-                    entry = json.loads(line.strip())
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entry = json.loads(line)
                     if request_id and entry.get("request_id") != request_id:
                         continue
-                    if entry["status"] == "pending":
+                    if entry.get("status") == "pending":
                         pending.append(entry)
-                    elif entry["status"] == "approved" and not entry.get("consumed", False):
-                        approved.append(entry)
         except Exception as e:
-            return {"error": str(e)}
-        
-        result = {"pending": pending, "approved": approved}
+            return {"error": str(e), "pending": []}
+
+        result = {"pending": pending}
         if request_id:
             result["request_id"] = request_id
         return result

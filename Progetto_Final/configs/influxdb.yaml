@@ -41,4 +41,20 @@ spec:
         - name: DOCKER_INFLUXDB_INIT_BUCKET
           value: iot_data
         - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
-          value: REDACTED_INFLUX_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: influx-token
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 8086
+          initialDelaySeconds: 10
+          periodSeconds: 10

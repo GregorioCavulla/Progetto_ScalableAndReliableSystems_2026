@@ -14,13 +14,26 @@ spec:
     spec:
       containers:
       - name: logistic-ai-brain
-        image: beta-drone-system:latest
+        image: progetto-final-image:latest
         imagePullPolicy: Never
         command: ["python", "-u", "logistic_ai_brain.py"]
         env:
         - name: MCP_SERVER_URL
           value: "http://mcp-server-service:8101"
         - name: MCP_TOKEN
-          value: "REDACTED_MCP_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: mcp-token
         - name: OPENAI_API_KEY
-          value: "sk-BI1ty8WHJ-PBrVP5_ElhZA" # Proxy fallover model setup
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: openai-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi

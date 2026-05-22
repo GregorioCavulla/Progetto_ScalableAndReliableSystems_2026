@@ -235,6 +235,18 @@ def dashboard():
     return render_template_string(DASHBOARD_HTML)
 
 
+@app.route('/health')
+def health():
+    """Endpoint usato dalla livenessProbe di Kubernetes (pattern Infrastructure_Bare)."""
+    return jsonify({
+        "status": "ok",
+        "drones": len(state["drones"]),
+        "pending_orders": len(state["pending_orders"]),
+        "broker": BROKER,
+        "influx": INFLUX_URL
+    }), 200
+
+
 @app.route('/api/drones')
 def api_drones():
     drones = [
@@ -415,6 +427,3 @@ def run():
 
 if __name__ == '__main__':
     run()
-@app.route('/health')
-def health():
-    return jsonify({"status": "ok"}), 200

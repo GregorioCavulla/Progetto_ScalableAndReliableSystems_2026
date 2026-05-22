@@ -3,11 +3,62 @@ import json
 import time
 from pathlib import Path
 from flask import Flask, jsonify, render_template_string, request, redirect
-from drone_mcp_layer import DroneMCP
+from kubernetes import client as k8s_client, config as k8s_config
+import paho.mqtt.client as mqtt
+from paho.mqtt.enums import CallbackAPIVersion
 
 app = Flask(__name__)
-mcp = DroneMCP()
 APPROVALS_FILE = Path("data/pending_approvals.jsonl")
+AUDIT_FILE = Path("data/audit_actions.jsonl")
+APPROVALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+# Init K8s (decoupled da DroneMCP: la dashboard chiama direttamente l'API K8s,
+# stesso pattern di scale_drones.py)
+try:
+    k8s_config.load_incluster_config()
+except Exception:
+    try:
+        k8s_config.load_kube_config()
+    except Exception as _e:
+        print(f"️ Avviso K8s: impossibile caricare configurazione ({_e})")
+K8S_APPS = k8s_client.AppsV1Api()
+
+MQTT_BROKER = os.getenv("MQTT_BROKER", "mosquitto-service")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+
+
+def _audit(action: str, details: dict):
+    try:
+        with open(AUDIT_FILE, "a") as f:
+            f.write(json.dumps({"timestamp": int(time.time()), "action": action,
+                                "payload": details, "source": "human_approval"}) + "\n")
+    except Exception as e:
+        print(f"Audit write failed: {e}")
+
+
+def _exec_scale(replicas: int) -> dict:
+    """Esegue lo scaling con chiamata K8s diretta (identico pattern di scale_drones.py)."""
+    K8S_APPS.patch_namespaced_deployment_scale(
+        name="drone-simulator",
+        namespace="default",
+        body={"spec": {"replicas": int(replicas)}}
+    )
+    _audit("approved_scale", {"replicas": int(replicas)})
+    return {"status": "success", "replicas": int(replicas)}
+
+
+def _exec_mqtt(target: str, action: str, **kwargs) -> dict:
+    topic = f"comandi/{target}" if target != "all" else "comandi/tutti"
+    payload = json.dumps({"action": action, **kwargs})
+    c = mqtt.Client(callback_api_version=CallbackAPIVersion.VERSION2,
+                    client_id=f"approval-{int(time.time())}")
+    c.connect(MQTT_BROKER, MQTT_PORT, 60)
+    c.loop_start()
+    c.publish(topic, payload, qos=1).wait_for_publish()
+    c.loop_stop()
+    c.disconnect()
+    _audit("approved_mqtt", {"target": target, "action": action, "kwargs": kwargs})
+    return {"status": "success", "topic": topic}
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -120,22 +171,38 @@ def index():
 @app.route("/api/approve/<req_id>", methods=["POST"])
 def approve(req_id):
     approvals = load_approvals()
+    target = None
     for req in approvals:
         if req["request_id"] == req_id and req["status"] == "pending":
-            req["status"] = "approved"
-            # Eseguiamo immediatamente l'azione bypassando la policy dell'agente
-            try:
-                action = req.get("action_type")
-                payload = req.get("payload", {})
-                if action == "scale_drone_deployment":
-                    result = mcp.scale_drone_deployment(replicas=payload.get("replicas", 1), force=True)
-                    print(f"Scale result: {result}")
-                elif action == "send_mqtt_command":
-                    result = mcp.send_mqtt_command(target=payload.get("target", "all"), action=payload.get("action"), force=True, **payload)
-                    print(f"MQTT command result: {result}")
-            except Exception as e:
-                print(f"Errore esecuzione azione approvata: {e}")
+            target = req
             break
+
+    if target is None:
+        print(f"Approve: richiesta {req_id} non trovata o già processata")
+        return redirect("/")
+
+    # Esegui l'azione PRIMA di marcare lo stato: se K8s/MQTT falliscono
+    # la richiesta resta pending e l'operatore può riprovare.
+    try:
+        action = target.get("action_type")
+        payload = target.get("payload", {}) or {}
+        if action == "scale_drone_deployment":
+            result = _exec_scale(payload.get("replicas", 1))
+        elif action == "send_mqtt_command":
+            # estrae target/action dal payload e passa il resto come kwargs
+            mqtt_target = payload.get("target", "all")
+            mqtt_action = payload.get("action")
+            extra = {k: v for k, v in payload.items() if k not in ("target", "action")}
+            result = _exec_mqtt(target=mqtt_target, action=mqtt_action, **extra)
+        else:
+            print(f"Approve: action_type sconosciuto: {action}")
+            return redirect("/")
+        print(f"Approve {req_id} -> {result}")
+    except Exception as e:
+        print(f"Errore esecuzione azione approvata {req_id}: {e}")
+        return redirect("/")
+
+    target["status"] = "approved"
     save_approvals(approvals)
     return redirect("/")
 

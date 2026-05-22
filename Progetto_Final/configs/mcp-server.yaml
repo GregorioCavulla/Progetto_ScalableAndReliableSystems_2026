@@ -50,7 +50,7 @@ spec:
         emptyDir: {}
       containers:
       - name: mcp-server
-        image: beta-drone-system:latest
+        image: progetto-final-image:latest
         imagePullPolicy: Never
         command: ["python", "-u", "mcp_server.py"]
         volumeMounts:
@@ -63,16 +63,43 @@ spec:
           value: "1883"
         - name: INFLUX_URL
           value: "http://influxdb-service:8086"
-        - name: INFLUX_TOKEN
-          value: "REDACTED_INFLUX_TOKEN"
         - name: INFLUX_ORG
           value: "laboratorio"
         - name: INFLUX_BUCKET
           value: "iot_data"
+        - name: INFLUX_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: influx-token
+        - name: MCP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: project-secrets
+              key: mcp-token
         ports:
         - containerPort: 8101
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8101
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8101
+          initialDelaySeconds: 5
+          periodSeconds: 10
       - name: human-approval-dashboard
-        image: beta-drone-system:latest
+        image: progetto-final-image:latest
         imagePullPolicy: Never
         command: ["python", "-u", "human_approval_manager.py"]
         volumeMounts:
@@ -80,6 +107,18 @@ spec:
           mountPath: /app/data
         ports:
         - containerPort: 5002
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 150m
+            memory: 128Mi
+        readinessProbe:
+          tcpSocket:
+            port: 5002
+          initialDelaySeconds: 5
+          periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service

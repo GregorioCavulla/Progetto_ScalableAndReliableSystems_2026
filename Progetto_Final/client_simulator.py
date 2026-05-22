@@ -1,11 +1,12 @@
 import paho.mqtt.client as mqtt
 import time
 import os
+import sys
 import json
 import random
 import uuid
+import argparse
 
-# --- Configurazione Ambiente ---
 BROKER = os.getenv("MQTT_BROKER", "localhost")
 PORT = int(os.getenv("MQTT_PORT", 1883))
 CLIENT_ID = os.getenv("CLIENT_SIM_ID", f"client-sim-{random.randint(1, 100)}")
@@ -15,7 +16,7 @@ TOPIC_ORDINI = "business/ordini/nuovi"
 # Area di copertura Hub (sistema di riferimento metrico in metri: HUB = [0, 0])
 BASE_LAT = 0.0
 BASE_LON = 0.0
-RADIUS = 5000.0 # circa 5km in metri
+RADIUS = 5000.0 
 
 def generate_random_coordinate():
     lat = BASE_LAT + random.uniform(-RADIUS, RADIUS)
@@ -72,7 +73,7 @@ def run():
     try:
         while True:
             # Crea un pacco / ordine ogni 10 - 25 secondi
-            time.sleep(random.randint(10, 35))
+            time.sleep(random.randint(10, 25))
             
             nuovo_ordine = generate_order()
             payload = json.dumps(nuovo_ordine)
@@ -89,5 +90,45 @@ def run():
         client.loop_stop()
         client.disconnect()
 
+
+def run_stress(total_orders: int = 50, delay_sec: float = 1.0):
+    """Modalità stress-test: pubblica 'total_orders' ordini in rapida successione.
+    Usata da chaos_test_suite.py (compatibilità Infrastructure_Bare).
+    """
+    client = mqtt.Client(client_id=f"stress-{CLIENT_ID}", callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
+    client.on_connect = on_connect
+
+    while True:
+        try:
+            client.connect(BROKER, PORT, 60)
+            break
+        except Exception as e:
+            print(f"Connessione fallita, broker non pronto: {e}. Riprovo in 5 sec...")
+            time.sleep(5)
+
+    client.loop_start()
+    print(f"[{CLIENT_ID}] STRESS MODE: invio di {total_orders} ordini (delay {delay_sec}s).")
+    try:
+        for i in range(total_orders):
+            nuovo_ordine = generate_order()
+            payload = json.dumps(nuovo_ordine)
+            client.publish(TOPIC_ORDINI, payload, qos=1)
+            print(f"Ordine {i+1}/{total_orders} Generato: {nuovo_ordine['order_id']} | Priorità: {nuovo_ordine['priority'].upper()}")
+            time.sleep(delay_sec)
+        print(f"[{CLIENT_ID}] Stress test completato ({total_orders} ordini).")
+    finally:
+        client.loop_stop()
+        client.disconnect()
+
+
 if __name__ == '__main__':
-    run()
+    parser = argparse.ArgumentParser(description="Simulatore di clienti / generatore ordini.")
+    parser.add_argument("--stress", action="store_true", help="Modalità stress-test: 50 ordini in 50 secondi.")
+    parser.add_argument("--orders", type=int, default=50, help="Numero di ordini in stress mode.")
+    parser.add_argument("--delay", type=float, default=1.0, help="Delay tra ordini in stress mode (secondi).")
+    args = parser.parse_args()
+
+    if args.stress:
+        run_stress(total_orders=args.orders, delay_sec=args.delay)
+    else:
+        run()

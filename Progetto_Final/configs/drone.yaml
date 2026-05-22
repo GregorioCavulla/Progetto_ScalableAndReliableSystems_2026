@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: drone
-        image: beta-drone-system:latest
+        image: progetto-final-image:latest
         imagePullPolicy: Never
         command: ["python", "-u", "drone_simulator.py"]
         env:
@@ -26,3 +26,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 150m
+            memory: 128Mi
