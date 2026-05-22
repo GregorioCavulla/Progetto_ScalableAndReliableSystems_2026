@@ -14,14 +14,30 @@ APPROVALS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 # Init K8s (decoupled da DroneMCP: la dashboard chiama direttamente l'API K8s,
 # stesso pattern di scale_drones.py)
+_K8S_MODE = "NESSUNA"
 try:
     k8s_config.load_incluster_config()
-except Exception:
+    _K8S_MODE = "in-cluster"
+except Exception as e_in:
     try:
         k8s_config.load_kube_config()
-    except Exception as _e:
-        print(f"️ Avviso K8s: impossibile caricare configurazione ({_e})")
-K8S_APPS = k8s_client.AppsV1Api()
+        _K8S_MODE = "kubeconfig"
+    except Exception as e_out:
+        print(f"[K8S] FATAL: nessuna config caricabile (incluster: {e_in} | kubeconfig: {e_out})", flush=True)
+print(f"[K8S] Config caricata: {_K8S_MODE}", flush=True)
+
+# Bug kubernetes==36.0.0: load_incluster_config() popola api_key['authorization']
+# ma auth_settings() della stessa lib cerca api_key['BearerToken'] -> nessun header
+# inviato -> apiserver tratta la richiesta come system:anonymous -> 403.
+# Workaround: leggiamo il token dal file SA e settiamo direttamente 'BearerToken'.
+_k8s_cfg = k8s_client.Configuration.get_default_copy()
+_sa_token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+if _K8S_MODE == "in-cluster" and os.path.exists(_sa_token_path):
+    with open(_sa_token_path) as _f:
+        _tok = _f.read().strip()
+    _k8s_cfg.api_key["BearerToken"] = _tok
+    _k8s_cfg.api_key_prefix["BearerToken"] = "Bearer"
+K8S_APPS = k8s_client.AppsV1Api(k8s_client.ApiClient(_k8s_cfg))
 
 MQTT_BROKER = os.getenv("MQTT_BROKER", "mosquitto-service")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))

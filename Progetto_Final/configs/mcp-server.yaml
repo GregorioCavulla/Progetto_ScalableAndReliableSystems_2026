@@ -25,6 +25,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: mcp-server-sa
+  namespace: default
 roleRef:
   kind: Role
   name: mcp-server-role

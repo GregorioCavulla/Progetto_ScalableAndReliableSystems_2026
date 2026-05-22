@@ -1,6 +1,8 @@
 venv
 venv_env.sh
 **/usb/
+token
+Progetto_Test_ghp
 
 # Sensitive environment and credentials
 .env

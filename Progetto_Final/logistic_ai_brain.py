@@ -71,7 +71,14 @@ def triage_manager(summary, pending):
             decision["run_logistic"] = True
         return decision
 
-    if (summary["ordini_pendenti"] > 0 and summary["droni_idle_disponibili"] == 0) or summary["droni_in_manutenzione"] > 0:
+    # Health agent ha SENSO solo se c'è qualcosa da risolvere a livello infrastruttura:
+    #  - droni in manutenzione (servirebbe maintenance)
+    #  - più ordini pendenti che droni totali (servirebbe SCALARE)
+    # Se i droni totali bastano per gli ordini, non c'è bisogno di scaling:
+    # basta aspettare che si liberino. Evita chiamate LLM inutili e no-op ripetuti.
+    needs_scale = summary["ordini_pendenti"] > summary["droni_totali_k8s"]
+    needs_maintenance = summary["droni_in_manutenzione"] > 0
+    if needs_scale or needs_maintenance:
         decision["run_health"] = True
         
     if summary["ordini_pendenti"] > 0 and summary["droni_idle_disponibili"] > 0:

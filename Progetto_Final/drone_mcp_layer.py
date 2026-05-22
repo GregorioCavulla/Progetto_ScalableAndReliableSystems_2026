@@ -24,16 +24,29 @@ class DroneMCP:
         self.audit_file = self.data_dir / "audit_actions.jsonl"
         self.approvals_file = self.data_dir / "pending_approvals.jsonl"
 
+        _k8s_mode = "NESSUNA"
         try:
-            config.load_incluster_config() 
-        except:
+            config.load_incluster_config()
+            _k8s_mode = "in-cluster"
+        except Exception:
             try:
-                config.load_kube_config() 
+                config.load_kube_config()
+                _k8s_mode = "kubeconfig"
             except Exception as e:
                 print(f"️ Avviso K8s: Impossibile caricare configurazione ({e})")
-        
-        self.k8s_apps = client.AppsV1Api()
-        self.k8s_core = client.CoreV1Api()
+
+        # Bug kubernetes==36.0.0: load_incluster_config() popola
+        # api_key['authorization'] ma auth_settings() cerca api_key['BearerToken'].
+        # Senza fix il client invia richieste senza token -> system:anonymous -> 403.
+        _cfg = client.Configuration.get_default_copy()
+        _sa_token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        if _k8s_mode == "in-cluster" and os.path.exists(_sa_token_path):
+            with open(_sa_token_path) as _f:
+                _cfg.api_key["BearerToken"] = _f.read().strip()
+            _cfg.api_key_prefix["BearerToken"] = "Bearer"
+        _api_client = client.ApiClient(_cfg)
+        self.k8s_apps = client.AppsV1Api(_api_client)
+        self.k8s_core = client.CoreV1Api(_api_client)
 
         # 2. Setup InfluxDB
         self.influx_url = os.getenv("INFLUX_URL", "http://localhost:8086")
@@ -199,6 +212,21 @@ class DroneMCP:
         l'eventuale approvazione esegue lo scaling direttamente dalla dashboard
         (vedi human_approval_manager.py), senza ri-passare da questo metodo.
         """
+        # No-op se siamo già al numero di repliche richiesto: evita richieste
+        # ripetute di approvazione e patch K8s inutili.
+        try:
+            current = self.k8s_apps.read_namespaced_deployment_scale(
+                name="drone-simulator", namespace="default"
+            ).spec.replicas
+            if int(replicas) == int(current):
+                return {
+                    "allowed": True,
+                    "status": "noop",
+                    "message": f"Infrastruttura già a {current} droni: nessuna azione necessaria."
+                }
+        except Exception:
+            pass
+
         if replicas > POLICY_LIMITS["max_drones_auto"]:
             return {
                 "allowed": False,
@@ -225,6 +253,22 @@ class DroneMCP:
         """
         if payload is None:
             payload = {}
+
+        # Short-circuit: se è una richiesta di scaling al numero di repliche già
+        # presenti, niente approvazione (sarebbe un no-op).
+        if action_type == "scale_drone_deployment" and isinstance(payload, dict) and "replicas" in payload:
+            try:
+                current = self.k8s_apps.read_namespaced_deployment_scale(
+                    name="drone-simulator", namespace="default"
+                ).spec.replicas
+                if int(payload["replicas"]) == int(current):
+                    return {
+                        "status": "noop",
+                        "message": f"Infrastruttura già a {current} droni: approvazione non necessaria."
+                    }
+            except Exception:
+                pass
+
         request_id = f"REQ-{int(time.time())}"
         entry = {
             "request_id": request_id,
