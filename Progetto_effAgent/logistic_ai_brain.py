@@ -150,10 +150,17 @@ def run_agent_loop():
         actual_orders_ids = {o.get("order_id") for o in full_order_list if o.get("order_id")}
         orders_a.intersection_update(actual_orders_ids)
 
-        final_orders_list = [o for o in full_order_list if o.get("order_id") not in orders_a]
+        #Ordina gli ordini per priorità: high -> normal -> low
+        priority_order = {"high": 0, "normal": 1, "low": 2}
+        final_orders_list = sorted(
+            [o for o in full_order_list if o.get("order_id") not in orders_a],
+            key=lambda o: priority_order.get(o.get("priority"), 999)
+        )
         orders_available = final_orders_list[:idle_drones] if idle_drones > 0 else []
 
         ready_drones = {id_drone: data for id_drone, data in telemetry_data.items() if data.get('state') == 'IDLE'}
+
+        simplified_orders = [{"id": o.get("order_id"), "priority": o.get("priority"), "kg": o.get("weight_kg")} for o in final_orders_list[:idle_drones]] if idle_drones > 0 else []   
 
         summary["ordini_pendenti"] = len(final_orders_list)
         summary["ordini_da_assegnare"] = final_orders_list
@@ -172,9 +179,8 @@ def run_agent_loop():
         )
 
         logistic_context = (
-            f"DATI LOGISTICA:\n"
             f"- Droni Disponibili (IDLE): {json.dumps(ready_drones)}\n"
-            f"- Ordini da Assegnare in questo ciclo: {json.dumps(orders_available)}"
+            f"- Ordini da Assegnare in questo ciclo: {json.dumps(simplified_orders)}"
         )
 
         # injected_context = f"DATI AGGIORNATI:\n- Telemetria: {json.dumps(global_state['telemetry'].get('drones_status'))}\n- Ordini: {json.dumps(global_state['orders'].get('orders'))}"

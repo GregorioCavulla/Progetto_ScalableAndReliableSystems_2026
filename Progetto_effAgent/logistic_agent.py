@@ -9,8 +9,6 @@ Il tuo UNICO obiettivo è leggere i dati forniti e invocare il tool di assegnazi
 Cerca di essere il più sintetico possibile e NON scrivere testo libero: SOLO chiamate al tool.
 I dati di telemetria e la coda ordini ti vengono forniti direttamente nel prompt. NON hai tool per leggere i dati.
 Attenzione al contesto fisico: il sistema opera su un'area metrica fino a ~5000 metri dall'HUB [0.0, 0.0]. L'usura dei droni va dal '0%' al '100%'. "
-REGOLE DI ASSEGNAZIONE (TASSATIVE):
-1. Gli ordini con priorità High vanno smaltiti per primi.
 Ogni ordine è unico e può essere assegnato a un solo drone: non usare mai lo stesso order_id più di una volta.
 REGOLE OBBLIGATORIE:
 1. NON spiegare il tuo ragionamento in nessun caso.
@@ -37,13 +35,13 @@ class LogisticAgent:
                         "type": "object",
                         "properties": {
                             "target": {"type": "string"},
-                            "action": {"type": "string", "enum": ["assign_mission"]},
+                            #"action": {"type": "string", "enum": ["assign_mission"]},
                             "order_id": {"type": "string"},
                             "target_lat": {"type": "number"},
                             "target_lon": {"type": "number"},
                             "weight_kg": {"type": "number"}
                         },
-                        "required": ["target", "action", "order_id"],
+                        "required": ["target", "order_id"],
                         "additionalProperties": False
                     },
                     "strict": True
@@ -61,6 +59,9 @@ class LogisticAgent:
 
     def run(self, injected_context, orders_a):
         print(" [Logistic Worker] Avviato...")
+
+        print("\n---> [DEBUG INGRESSO] Contesto ricevuto dall'IA:")
+        print(injected_context)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Assegna le missioni in base a questo stato:\n\n{injected_context}"}
@@ -71,6 +72,7 @@ class LogisticAgent:
                 model=self.model, 
                 messages=messages, 
                 tools=self.tools, 
+                tool_choice={"type": "function", "function": {"name": "send_mqtt_command"}},
                 temperature=0.1, 
                 max_tokens=2200   
             )
@@ -80,26 +82,29 @@ class LogisticAgent:
 
             if not msg.tool_calls:
                 return "Nessuna assegnazione eseguita."
+            
+            print("\n<=== [DEBUG USCITA] Tool calls scritte dall'IA (Token di completamento):")
+            for i, tool_call in enumerate(msg.tool_calls):
+                print(f"  Chiamata #{i+1} -> Nome: {tool_call.function.name} | Argomenti compressi: {tool_call.function.arguments}")
                     
-            messages.append(msg)
+            #messages.append(msg)
 
             for tool_call in msg.tool_calls:
                 tool_name = tool_call.function.name
 
                 if tool_name != "send_mqtt_command":
-                    print(f" [!] Bloccata allucinazione tool: {tool_name}")
                     continue
 
                 try:
                     argomenti = json.loads(tool_call.function.arguments)
+                    argomenti["action"] = "assign_mission" #Dato che è l'unico tool
                 except json.JSONDecodeError:
-                    print(" [!] Bloccata allucinazione argomenti JSON")
                     continue
                 
                 lat = float(argomenti.get("target_lat", 0.0))
                 lon = float(argomenti.get("target_lon", 0.0))
                 if not (-5000.0 <= lat <= 5000.0) or not (-5000.0 <= lon <= 5000.0):
-                    print(f" [!] Bloccata operazione: Coordinate fuori dal recinto metrico (Lat: {lat}, Lon: {lon})")
+                    print(f" Errore: Coordinate fuori range per ordine {argomenti.get('order_id')}. Skipping.")
                     continue
 
                 if argomenti.get("action") == "assign_mission":
