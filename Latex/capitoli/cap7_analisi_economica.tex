@@ -1,0 +1,43 @@
+% !TeX root = ../main.tex
+
+\chapter{Analisi Economica: Costi, ROI e ROA (Return on Agent)}
+\label{cap:analisi_economica}
+
+Analisi di business e valutazione dell'impatto economico del sistema, come richiesto dalle linee guida.
+
+\section{Service Level Objectives (SLOs) e Costo del Downtime}
+\label{sec:slo_downtime}
+\subsection*{Definizione degli SLOs}
+Per analizzare l'affidabilità del sistema e definire la tolleranza ai guasti, abbiamo stabilito tre \textit{Service Level Objectives} (SLO), basandoci sul workload visto nei capitoli precedenti. 
+\begin{itemize}
+    \item \textbf{SLO 1 - Latenza di Assegnazione Logistica:} Il 90\% degli ordini arrivati con priorità alta deve essere processato e assegnato a un mezzo entro 1 minuto. Questo valore è giustificato dal ciclo di vita dell'orchestratore, che prevede un \texttt{time.sleep(30)} di base a cui si somma il tempo di latenza per l'inferenza dell'API.
+    \item \textbf{SLO 2 - Disponibilità del Data Layer:} Il broker MQTT e il database InfluxDB devono garantire il 99.9\% di uptime. Considerando che i droni inviano telemetria ogni 2 secondi, una perdita prolungata di dati (comunque mitigata dalle tacniche che abbiamo visto) renderebbe cieca l'IA, paralizzando l'health agent nella sua funzione di monitoraggio con possibili risvolti pericolosi.
+    \item \textbf{SLO 3 - Affidabilità e Risoluzione Agentica:} L'LLM deve concludere il proprio task di ragionamento ed emettere una \textit{tool call} valida nel 99\% dei casi senza innescare l'interruttore di sicurezza \texttt{MAX\_AGENT\_ITERATIONS}, evitando timeout o spreco di computazione e risorse economiche.
+\end{itemize}
+\subsection*{Stima del Costo di un'Ora di Downtime}
+Lavorando nel dominio della logistica critica, il costo stimato di un'ora di downtime del servizio è stimato a circa \textbf{15.000 €/ora}. Questa stima deriva da una media calcolata basandosi sui guadagni medi che il servizio raggiunge in un'ora di attività, portando a termine le consegne. Il dato però deriva anche da possibili penali contrattuali, e quindi dagli SLA violati. Inoltre devono essere anche considerati danni collaterali fisici. Se il server centrale cade la flotta risulterebbe senza coordinamento e questo potrebbe portare a schianti e perdita di capitale hardware.
+
+\section{OPEX e Budget API Mensile}
+\label{sec:opex_budget}
+
+\subsection*{Stima dei Costi Infrastrutturali (Cloud Computing)}
+Per mantenere l'ambiente containerizzato (Kubernetes, i database InfluxDB e i broker MQTT) ad alta affidabilità, si ipotizza l'utilizzo di 3 nodi worker di media potenza su un provider cloud. Questo genera un OPEX infrastrutturale di base di circa \textbf{150 € / mese}.
+
+\subsection*{Stima del Tetto di Spesa Agentico}
+Il rischio maggiore nell'utilizzo dell'IA in loop autonomi deriva da esecuzioni incontrollate. L'architettura previene questo scenario tramite due rigorosi \textit{Economic Guardrails} cablati nel codice dell'orchestratore:
+\begin{enumerate}
+    \item \textbf{Rate Limiting Temporale (Micro-Batching):} L'istruzione \texttt{time.sleep(30)} impone un massimo teorico di 120 invocazioni all'ora (2.880 al giorno).
+    \item \textbf{Hard Limit sulle Iterazioni:} La costante \texttt{MAX\_AGENT\_ITERATIONS = 4} pone un limite matematico al numero di scambi Prompt-Completion per singolo ciclo.
+\end{enumerate}
+
+Senza ottimizzazioni, l'esecuzione di 2.880 cicli al giorno con \textit{Gemini-2.5-Pro} (stimando un consumo medio di contesto di 2500 token a ciclo, quindi con un workload nella media) costerebbe circa 100-150 € mensili. Tuttavia, grazie all'innovativa implementazione dello \textbf{State Hashing} nell'orchestratore (\texttt{fetch\_global\_state}), l'IA non viene attivata se lo stato del sistema (telemetria e ordini) non è cambiato rispetto al ciclo precedente. Questo abbatte drasticamente il numero di chiamate API reali.
+
+Di conseguenza, l'OPEX totale del software (Infrastruttura + Intelligenza Artificiale) si attesta su una media contenuta e prevedibile di circa \textbf{250 - 300 € al mese}, una cifra ampiamente sostenibile che rispetta pienamente i vincoli di Budget Compliance del progetto.
+
+\section{Return on Agent (ROA)}
+\label{sec:roa}
+Valutazione del reale valore aggiunto apportato dall'Intelligenza Artificiale (es. risparmio di capitale hardware CAPEX grazie alla manutenzione preventiva vs. spesa in chiamate API).
+
+\section{Analisi dei Trade-Off}
+\label{sec:analisi_tradeoff}
+Bilanciamento analitico tra i costi di automazione e la reliability, confrontando l'efficienza dell'automazione pura rispetto alla sicurezza del paradigma HITL.

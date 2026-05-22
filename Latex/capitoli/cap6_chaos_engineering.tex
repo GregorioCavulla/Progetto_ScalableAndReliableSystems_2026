@@ -1,0 +1,18 @@
+% !TeX root = ../main.tex
+
+\chapter{Chaos Engineering e Test di Fallimento}
+\label{cap:chaos_engineering}
+
+Dimostrazione pratica e documentata di come il sistema reagisce in condizioni di stress controllato.
+
+\section{Esperimento 1: Load Spike}
+\label{sec:esperimento_1}
+Iniezione massiva di 50 ordini simultanei. Analisi della reazione dell'Health Agent e della corretta esecuzione della richiesta di escalation per lo scaling infrastrutturale.
+
+\section{Esperimento 2: Primary Database Outage}
+\label{sec:esperimento_2}
+Spegnimento intenzionale del pod di InfluxDB per testare e dimostrare l'effettivo funzionamento della Graceful Degradation sulla Dashboard Web.
+
+\section{Recovery Time Objective (RTO)}
+\label{sec:rto}
+Misurazione metrica dei tempi di ripristino post-crash dei servizi vitali come l'MCP Server o Mosquitto.

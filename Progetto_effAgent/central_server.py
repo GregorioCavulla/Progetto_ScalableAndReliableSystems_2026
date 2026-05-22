@@ -415,3 +415,6 @@ def run():
 
 if __name__ == '__main__':
     run()
+@app.route('/health')
+def health():
+    return jsonify({"status": "ok"}), 200

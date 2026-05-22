@@ -1,0 +1,42 @@
+{
+    "name": "K8s Cluster Locale (Stabile 2025 - Ubuntu LTS)",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    
+    "features": {
+        // Abilita la funzionalità Docker-in-Docker per far girare i cluster di Kind e costruire container
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "enableNonRootDocker": "true",
+            "moby": "true"
+        },
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.10"
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "version": "latest",
+            "helm": "none",
+            "minikube": "none"
+        }
+    },
+    
+    "customizations": {
+        "vscode": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": [
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "ms-azuretools.vscode-docker",
+                "redhat.vscode-yaml",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "James-Yu.latex-workshop"
+            ]
+        }
+    },
+    
+    "remoteUser": "vscode"
+}
