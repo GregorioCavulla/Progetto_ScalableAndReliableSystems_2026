@@ -212,8 +212,7 @@ class DroneMCP:
         l'eventuale approvazione esegue lo scaling direttamente dalla dashboard
         (vedi human_approval_manager.py), senza ri-passare da questo metodo.
         """
-        # No-op se siamo già al numero di repliche richiesto: evita richieste
-        # ripetute di approvazione e patch K8s inutili.
+        # No-op se siamo già al numero di repliche richiesto: evita richieste ripetute di approvazione.
         try:
             current = self.k8s_apps.read_namespaced_deployment_scale(
                 name="drone-simulator", namespace="default"
@@ -254,8 +253,7 @@ class DroneMCP:
         if payload is None:
             payload = {}
 
-        # Short-circuit: se è una richiesta di scaling al numero di repliche già
-        # presenti, niente approvazione (sarebbe un no-op).
+        #Blocca richiesta di scaling al numero di repliche già raggiunto
         if action_type == "scale_drone_deployment" and isinstance(payload, dict) and "replicas" in payload:
             try:
                 current = self.k8s_apps.read_namespaced_deployment_scale(
@@ -263,11 +261,31 @@ class DroneMCP:
                 ).spec.replicas
                 if int(payload["replicas"]) == int(current):
                     return {
+                        "allowed": False,
                         "status": "noop",
                         "message": f"Infrastruttura già a {current} droni: approvazione non necessaria."
                     }
             except Exception:
                 pass
+        ##################################
+
+        #Evita richieste duplicate mentre richiesta è in sospeso
+        if self.approvals_file.exists():
+            try:
+                with open(self.approvals_file, "r") as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        entry = json.loads(line.strip())
+                        if entry.get("status") == "pending" and entry.get("action_type") == action_type:
+                            return {
+                                "allowed": False,
+                                "status": "blocked",
+                                "message": f"Esiste già una richiesta in attesa per '{action_type}'. Attendi l'azione umana."
+                            }
+            except Exception as e:
+                print(f"Errore lettura file approvazioni: {e}")
+            ################################
 
         request_id = f"REQ-{int(time.time())}"
         entry = {
