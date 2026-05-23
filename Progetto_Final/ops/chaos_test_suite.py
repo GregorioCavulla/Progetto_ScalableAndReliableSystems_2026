@@ -101,7 +101,7 @@ def test_network_resilience_mqtt(core_api):
     return downtime
 
 
-def test_load_spike(apps_api):
+def test_load_spike(apps_api, core_api):
     logging.info("=== TEST 3: Load Spike and Dynamic Scaling ===")
     logging.info("Injecting massive load using client_simulator.py --stress...")
     drones_before = 0
@@ -114,18 +114,47 @@ def test_load_spike(apps_api):
         deployment = apps_api.read_namespaced_deployment(name=deployment_name, namespace=namespace)
         drones_before = deployment.spec.replicas
 
-        logging.info("Executing client_simulator.py --stress to generate 50 requests...")
+        logging.info("Executing client_simulator.py --stress dentro il pod client-simulator (kubectl exec)...")
+        # Eseguiamo lo stress test DENTRO il pod client-simulator: l'immagine
+        # contiene gia' paho-mqtt e punta a mosquitto-service via DNS interno,
+        # quindi non serve installare nulla sull'host del chaos test.
+        client_pod = None
+        try:
+            pods = core_api.list_namespaced_pod(
+                namespace=namespace, label_selector="app=client-simulator"
+            )
+            running = [p for p in pods.items if p.status.phase == "Running"]
+            if running:
+                client_pod = running[0].metadata.name
+        except ApiException as e:
+            logging.error(f"Impossibile listare i pod client-simulator: {e.reason}")
+
+        if not client_pod:
+            logging.error("Nessun pod client-simulator Running trovato: salto lo stress test.")
+            return {"before": drones_before, "after": drones_before}
+
+        logging.info(f"Pod selezionato per lo stress: {client_pod}")
         process = subprocess.Popen(
-            ["python3", "client_simulator.py", "--stress"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            [
+                "kubectl", "exec", "-n", namespace, client_pod, "--",
+                "python", "-u", "client_simulator.py", "--stress",
+            ],
         )
 
-        logging.info("Allowing 60 seconds for Logistic AI Brain to detect queue spike and scale drone deployment...")
-        time.sleep(60)
-
-        if process.poll() is None:
+        # Attendiamo che lo stress test finisca di pubblicare (50 ordini * 1s ~= 50s)
+        try:
+            process.wait(timeout=120)
+            logging.info(f"client_simulator.py --stress terminato (exit={process.returncode}).")
+        except subprocess.TimeoutExpired:
+            logging.warning("Stress process ancora attivo dopo 120s, lo termino.")
             process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+
+        logging.info("Attendo ulteriori 30s affinché il Logistic AI Brain rilevi lo spike e scali i droni...")
+        time.sleep(30)
 
         # Get replicas after spike
         deployment = apps_api.read_namespaced_deployment(name=deployment_name, namespace=namespace)
@@ -172,7 +201,7 @@ def interactive_menu():
             print(f"-> Tempo K8s Recovery Mosquitto: {downtime:.2f} secondi" if downtime else "-> Errore nel test o pod non trovato.")
 
         elif choice == '3':
-            result = test_load_spike(apps_v1)
+            result = test_load_spike(apps_v1, core_v1)
             print("\n*** RISULTATI TEST 3 ***")
             print(f"-> Drone Replicas PRIMA dello Spike: {result['before']}")
             print(f"-> Drone Replicas DOPO lo Spike: {result['after']}")
@@ -180,7 +209,7 @@ def interactive_menu():
         elif choice == '4':
             rto = test_graceful_degradation_influxdb(apps_v1)
             downtime = test_network_resilience_mqtt(core_v1)
-            result = test_load_spike(apps_v1)
+            result = test_load_spike(apps_v1, core_v1)
 
             print("\n" + "*"*50)
             print("   RESOCONTO COMPLETO E2E TEST")
