@@ -133,7 +133,7 @@ def run_agent_loop():
         print(f"\n[Snapshot Sistema...")
         global_state = fetch_global_state()
         if not global_state:
-            time.sleep(10)
+            time.sleep(30)
             continue
    
         telemetry_data = global_state['telemetry'].get('drones_status', {})
@@ -209,7 +209,7 @@ def run_agent_loop():
         for t in threads:
             t.join()
             
-        time.sleep(10)
+        time.sleep(30)
 
 if __name__ == "__main__":
     run_agent_loop()

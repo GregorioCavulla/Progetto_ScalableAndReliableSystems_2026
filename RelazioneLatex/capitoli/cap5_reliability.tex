@@ -1,0 +1,58 @@
+% !TeX root = ../main.tex
+
+\chapter{Meccanismi di Reliability e Scalabilità}
+\label{cap:reliability_scalability}
+
+Il presente capitolo illustra le soluzioni applicate all'interno del progetto per gestire temporanei disservizi e scalare le risorse al bisogno. L'architettura fa ampio uso dei comportamenti "out-of-the-box" forniti dalle librerie di base, arricchite da pattern architetturali per confinare gli errori e rendere il sistema reattivo al traffico.
+
+% ---------------------------------------------------------
+\section{Resilienza di Rete}
+\label{sec:resilienza_rete}
+Nei sistemi distribuiti basati su messaggistica (come i client in \texttt{drone\_simulator.py}), la sconnessione temporanea del broker MQTT è un'evenienza da gestire nativamente. 
+
+In fase di avvio (funzione \texttt{run()} del simulatore), i droni presentano un ciclo di retry custom: qualora il broker non sia ancora schedulato (es. deployment asincrono in un cluster Kubernetes), la connessione fallisce ed esegue un poller ritardato di 5 secondi tramite \texttt{time.sleep}, fino ad avvenuto handshake. 
+
+A regime, il grosso della resilienza di rete è demandato ai meccanismi interni della libreria ufficiale \textit{paho-mqtt} e al suo metodo associato \texttt{loop\_start()}. In caso di caduta momentanea del servizio \textit{Mosquitto}, il client Python cattura il blocco della socket ed avvia autonomamente una strategia di Exponential Backoff per i tentativi di riconnessione, ripristinando la sottoscrizione ai topic operativi (\texttt{comandi/\#}) senza introdurre logiche custom che rischierebbero di sovraccaricare il thread principale.
+
+% ---------------------------------------------------------
+\section{Graceful Degradation del Server Centrale}
+\label{sec:graceful_degradation}
+Nel nostro ecosistema, \texttt{central\_server.py} gestisce sia le telemetrie (fino a InfluxDB) sia l'esposizione della dashboard Flask in tempo reale per la supervisione della flotta. Per evitare che un downtime limitato del database InfluxDB causi il collasso del monitoraggio live, è stato adottato un approccio ibrido con degradazione controllata.
+
+Il pattern prevede un dual write all'arrivo di ogni messaggio MQTT (\texttt{on\_message}), strutturato secondo la seguente logica sequenziale:
+
+\begin{lstlisting}[language=Python, caption={Schema logico del meccanismo di Graceful Degradation nel Server Centrale.}, label={lst:graceful_degradation}]
+def on_message(client, userdata, msg):
+    # 1. Aggiornamento immediato dello stato in-memory (per la Dashboard live)
+    state["drones"][drone_id] = parsing(msg.payload)
+    
+    # 2. Scrittura persistente su InfluxDB isolata da eccezioni
+    try:
+        write_api.write(bucket, org, record)
+    except InfluxDBError as e:
+        # L'eccezione viene neutralizzata per preservare i servizi realtime
+        log_warning("InfluxDB non raggiungibile. Degradazione del servizio log storici.")
+\end{lstlisting}
+
+Se il container InfluxDB risulta non accessibile, l'eccezione viene neutralizzata nel blocco \texttt{try/except} globale all'handler. Di conseguenza, il sistema perde il salvataggio dei log storici (degradazione del servizio) ma mantiene perfettamente operativi il tracciamento realtime dei pacchetti e i cruscotti per gli operatori (graceful), isolando il guasto al solo storage layer senza bloccare la coda delle missioni.
+
+% ---------------------------------------------------------
+\section{Scalabilità Dinamica e Safety Limits K8s}
+\label{sec:scalabilita_dinamica}
+L'architettura supera lo scaling passivo (es. basato unicamente su carico CPU/RAM) delegando la valutazione dei bisogni logistici ad Agenti AI dotati di capacità MCP (Model Context Protocol).
+
+Nello specifico, il \textit{Logistic AI Brain} ha a disposizione un tool per richiedere dinamicamente più droni per snellire la coda (\texttt{pending\_orders}). Internamente, questo strumento richiama una funzione dedicata in \texttt{drone\_mcp\_layer.py} (\texttt{scale\_drone\_deployment}) che interagisce via API HTTP con il control-plane di Kubernetes. Sfruttando la libreria client ufficiale per Python, la richiesta genera un'operazione K8s di tipo \texttt{patch\_namespaced\_deployment\_scale} a carico del Deployment \texttt{drone-simulator}, variando in tempo reale le repliche a disposizione a seconda della coda dei pacchi.
+
+A tutela dell'infrastruttura (\textit{Operational Safety}), questo scaling dinamico è sottoposto a policy di sicurezza:
+
+\begin{lstlisting}[language=Python, caption={Guardrail di sicurezza applicato alle richieste di scaling dell'agente.}, label={lst:safety_limits_scale}]
+# Verifica dei vincoli architetturali prima del patching su Kubernetes
+if requested_replicas > POLICY_LIMITS:
+    # L'azione viene bloccata ed escalata all'operatore umano
+    trigger_human_escalation(requested_replicas)
+else:
+    # Esecuzione della patch sul Deployment
+    k8s_client.patch_namespaced_deployment_scale(name="drone-simulator", ...)
+\end{lstlisting}
+
+Se l'applicativo tenta un'espansione del numero di repliche oltre la soglia prestabilita \texttt{POLICY\_LIMITS}, l'azione viene intercettata, bloccata ed escalata al \textit{Human Approval Manager}, evitando consumi cloud incontrollati dovuti a potenziali allucinazioni o comportamenti imprevisti del modello.

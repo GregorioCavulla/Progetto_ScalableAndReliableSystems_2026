@@ -1,0 +1,56 @@
+% !TeX root = ../main.tex
+
+\chapter{Operational Safety Policy e Agent Guardrails}
+\label{cap:safety_guardrails}
+
+L'introduzione di layer come MCP espone il sistema a rischi intrinseci legati ad allucinazioni, latenze e comportamenti non deterministici. Per questo sono state inserite Safety Policy e vincoli nell'architettura, implementati per garantire che ogni azione degli agenti rimanga verificabile, confinata e sicura.
+
+\section{Principio del Minimo Privilegio (Least Privilege)}
+\label{sec:least_privilege}
+Seguendo specifiche di progetto, abbiamo fatto si che l'architettura applichi il Principio del Minimo Privilegio (\textit{Least Privilege}): l'Intelligenza Artificiale è stata utilizzata per ricoprire il ruolo di "assistente operativo" e non può in alcun caso avere il controllo illimitato dell'infrastruttura.
+
+Per implementare questo livello di sicurezza, i cicli di ragionamento dei due agenti sono stati confinati all'interno di un ambiente di esecuzione isolato gestito dall'orchestratore. Gli agenti non possiedono credenziali di root, né token diretti ai cluster Kubernetes o al database InfluxDB. L'unica interfaccia col mondo reale è il server Model Context Protocol, il quale agisce come \textit{chokepoint} di sicurezza applicando le seguenti regole:
+
+\begin{itemize}
+    \item \textbf{Accesso Read-Only alla Telemetria:} Conformemente alle linee guida, la telemetria operativa viene esposta esclusivamente in modalità di sola lettura. Gli strumenti di osservazione implementano sotto il cofano solo \texttt{query\_api} pre-compilate in Python. L'agente non ha facoltà di comporre query \textit{Flux} o \textit{SQL} arbitrarie, annullando matematicamente il rischio di \textit{Injection}.
+    
+    \item \textbf{Divieto Assoluto di Azioni Distruttive:} Non è stato esposto alcun tool che permetta la compromissione dei dati primari. Azioni ad alto rischio come il \texttt{DROP} di un bucket, l'operazione di \texttt{DELETE} di un ordine storico su InfluxDB, o la terminazione dei processi core sono quindi fisicamente impossibili per l'agente. Il codice del layer MCP (\texttt{drone\_mcp\_layer.py}) omette intenzionalmente qualsiasi implementazione logica di questi comandi.
+\end{itemize}
+Questo crea quindi un perimetro di sicurezza: anche nel caso di una forte allucinazione logica in cui l'LLM tentasse autonomamente di cancellare i dati operativi o distruggere il cluster, le richieste verrebbero rigettate vista l'inesistenza del metodo, preservando la sicurezza del sistema.
+
+\section{Protezione contro Loop e Consumo Token}
+\label{sec:protezione_loop}
+Una comune vulnerabilità degli agenti è la possibilità che entrino in un loop di ragionamento infinito. Questo accade quando il modello subisce un allucinazione e di conseguenza continua a provare ad utilizzare le stesse chiamate API senza però mai giungere a una conclusione. Oltre a danneggiare il sistema, questo porterebbe anche ad un esaurimento del budget di token a disposizione. L'health agent dispone quindi di un contatore che tiene traccia delle chiamate effettuate all'interno dello stesso turno, impostato a 3 iterazioni. Se l'agente non riesce a completare il suo ragionamento in questo limite, viene terminato forzatamente il processo e restituito un messaggio predefinito. In più è presente anche un altro controllo che monitora invece il format della risposta, e qualora l'agente abbia "allucinazioni" e la risposta non rientri nei parametri appropriati per due volte consecutive, viene bloccato allo stesso modo. In questo modo limitiamo l'ingresso in cicli infiniti, assicurando che le nostre spese rimangano all'interno del budget. 
+
+\section{Protezione contro scollegamento backend}
+È stato inoltre implementato un interruttore di sicurezza per impedire lo spam di chiamate API verso l'LLM quando l'infrastruttura di backend va offline.
+Infatti qualora il server MCP si disconnettesse, la funzione di recupero dello stato globale fallirebbe in modo sistematico. Il codice Python continuerebbe a far girare il loop ogni pochi secondi inviando all'intelligenza artificiale contesti vuoti o dati obsoleti, costringendo gli agenti a prendere decisioni basate sul nulla e generando centinaia di invocazioni API a vuoto. Per evitare questo spreco di token e risorse, ogni chiamata fallita verso il server, incrementa un contatore dedicato. Al raggiungimento di una soglia prefissata, scatta automaticamente un kill-switch che congela l'attività degli agenti. Una volta attivata questa sospensione globale, il sistema procederà a effettuare un controllo della rete a intervalli con lo scopo di verificare il ripristino del backend. Non appena il server MCP torna correttamente online, il contatore viene azzerato, l'interruttore di sicurezza si riarma e il flusso operativo dell'intelligenza artificiale riprende autonomamente la sua normale esecuzione in tempo reale.
+\section{Idempotenza delle Azioni}
+\label{sec:idempotenza_azioni}
+In questo tipo di architetture, l'idempotenza rappresenta una proprietà di sicurezza fondamentale per garantire la robustezza del sistema e prevenire fallimenti catastrofici causati da allucinazioni o comportamenti ripetitivi degli LLM. Un'operazione è idempotente quando il suo effetto sul sistema è lo stesso, sia in caso venga eseguita una volta sola, sia in caso venga eseguita più volte.
+
+L'esempio più significativo di questa protezione è verificabile nel meccanismo di scaling della flotta. Quando l'agente della salute determina la necessità di espandere il numero di droni e invoca lo strumento \texttt{scale\_drone\_deployment}, il codice nel modulo \texttt{drone\_mcp\_layer.py} esegue un'operazione di \textit{patching} sullo stato del cluster tramite la funzione \texttt{patch\_namespaced\_deployment\_scale}. 
+Questa scelta garantisce l'idempotenza grazie a due fattori chiave:
+
+\begin{itemize}
+    \item \textbf{Logica di Stato Desiderato (Dichiarativa):} Il tool accetta come parametro il numero di repliche desiderate (ad esempio 6 repliche). Se l'LLM entra in un loop o ripete lo stesso comando cinque volte nello stesso ciclo, Kubernetes riceverà cinque richieste consecutive in cui si dichiara che lo stato ottimale è di 6 pod. Il pannello di controllo di Kubernetes verificherà che il deployment ha già raggiunto la quota di 6 repliche e ignorerà completamente le successive quattro chiamate, non eseguendo alcuna allocazione extra.
+    \item \textbf{Prevenzione del Collasso per Esaurimento Risorse:} Se il tool MCP fosse stato progettato in modo da aggiungere un numero di mezzi ad ogni chiamata, cinque chiamate consecutive dettate da un'allucinazione avrebbero inserito molti più droni fantasma nel cluster. Questo avrebbe saturato istantaneamente le risorse computazionali dei nodi congestionato la rete MQTT e violando il tetto massimo di spesa.
+\end{itemize}
+
+\section{Human-In-The-Loop (HITL) ed Escalation}
+\label{sec:hitl_escalation}
+Il paradigma \textit{Human-In-The-Loop} (HITL) rappresenta l'ultimo livello di difesa contro allucinazioni o decisioni economicamente dannose generate autonomamente dall'Intelligenza Artificiale. Nel nostro sistema, l'automazione pura viene interrotta non appena un'azione degli agenti supera i confini di sicurezza prestabiliti dalle policy, forzando un'escalation verso un supervisore umano.
+
+\subsection*{La Regola Architetturale dei 6 Droni}
+All'interno del modulo \texttt{drone\_mcp\_layer.py}, la costante \texttt{POLICY\_LIMITS} fissa a \textbf{6} il numero massimo di droni allocabili per l'azione in totale autonomia (\texttt{max\_drones\_auto}). Il flusso operativo è regolato da una policy rigorosa:
+\begin{itemize}
+    \item \textbf{Sotto la soglia ($\le 6$):} L'\texttt{HealthAgent} ha il pieno controllo dichiarativo e può invocare direttamente il tool \texttt{scale\_drone\_deployment} per adattare il cluster Kubernetes ai picchi di carico.
+    \item \textbf{Sopra la soglia ($> 6$):} Qualora un workload maggiore richieda un dimensionamento superiore a 6 pod, il layer MCP blocca l'esecuzione deterministica del comando, considerandolo ad alto impatto economico. L'agente è obbligato a interrompere il proprio loop e a invocare lo strumento \texttt{request\_human\_approval}.
+\end{itemize}
+
+\subsection*{Il Portale di Approvazione}
+L'intercettazione e la gestione delle escalation sono demandate a un servizio Flask indipendente (\texttt{human\_approval\_manager.py}) in ascolto sulla porta \texttt{5002}, che espone una Dashboard Web dedicata agli operatori umani. 
+
+Quando l'agente richiede un'escalation, il server MCP persiste la richiesta nel file \texttt{pending\_approvals.jsonl}. La dashboard legge questo registro e renderizza una scheda informativa per l'operatore. Ciascuna scheda mostra in modo trasparente l'identificativo unico (\texttt{request\_id}), l'azione richiesta, il payload JSON (es. \texttt{\{'replicas': 8\}}) e, soprattutto, la giustificazione logica in linguaggio naturale fornita dall'LLM (\texttt{reason}).
+
+L'operatore dispone di un diritto di veto assoluto tramite due interfacce. Approve fa si che la transizione venga convalidata, ed esegue istantaneamente il \textit{patching} su Kubernetes impostando il parametro \texttt{force=True}, scavalcando i blocchi preventivi del codice. Deny contrassegna la richiesta come rejected e al ciclo successivo l'health agent manterrà lo stato inalterato. 

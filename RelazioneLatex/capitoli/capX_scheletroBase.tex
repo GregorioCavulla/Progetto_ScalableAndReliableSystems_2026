@@ -1,0 +1,37 @@
+% !TeX root = ../main.tex
+
+\chapter{Titolo del Capitolo}
+\label{cap:nome_capitolo}
+
+Qui inserisci l'introduzione al capitolo, spiegando brevemente di cosa parlerà questa parte della relazione.
+
+% ---------------------------------------------------------
+\section{Titolo della Sezione}
+\label{sec:titolo_sezione}
+
+Questo è un paragrafo di testo standard. Se devi citare un file di codice, puoi scriverlo usando la spaziatura fissa: \texttt{drone_simulator.py}. 
+
+Se invece devi fare riferimento a un percorso di una cartella, puoi scriverlo così: \texttt{configs/drone.yaml}.
+
+\subsection{Titolo della Sotto-sezione}
+\label{subsec:titolo_sottosezione}
+
+Ecco un esempio di elenco puntato per descrivere componenti o requisiti:
+\begin{itemize}
+    \item \textbf{Componente A:} Spiegazione del primo blocco.
+    \item \textbf{Componente B:} Spiegazione del secondo blocco.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Analisi del Codice e Configurazioni}
+\label{sec:codice}
+
+Quando dovrete inserire i blocchi di codice interi (es. file YAML di Kubernetes o script Python), useremo un blocco come questo (che si appoggerà al pacchetto scelto nel main):
+
+\begin{lstlisting}[language=Python, caption={Breve descrizione di cosa fa il codice}, label={lst:codice_esempio}]
+# Questo è un commento nel codice Python
+def setup_agent():
+    print("Agent inizializzato")
+\end{lstlisting}
+
+Un blocco di codice simile può essere richiamato nel testo dicendo ad esempio: "come mostrato nel Listing~\ref{lst:codice_esempio}...".

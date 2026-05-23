@@ -153,8 +153,8 @@ def test_load_spike(apps_api, core_api):
             except subprocess.TimeoutExpired:
                 process.kill()
 
-        logging.info("Attendo ulteriori 30s affinché il Logistic AI Brain rilevi lo spike e scali i droni...")
-        time.sleep(30)
+        logging.info("Attendo ulteriori 60s affinché il Logistic AI Brain rilevi lo spike e scali i droni...")
+        time.sleep(60)
 
         # Get replicas after spike
         deployment = apps_api.read_namespaced_deployment(name=deployment_name, namespace=namespace)
