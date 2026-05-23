@@ -1,0 +1,65 @@
+% !TeX root = ../main.tex
+
+\chapter{Analisi Economica: Costi, ROI e ROA (Return on Agent)}
+\label{cap:analisi_economica}
+
+\section{Service Level Objectives (SLOs) e Costo del Downtime}
+\label{sec:slo_downtime}
+\subsection*{Definizione degli SLOs}
+Per analizzare l'affidabilità del sistema e definire la tolleranza ai guasti, abbiamo stabilito tre \textit{Service Level Objectives} (SLO), basandoci sul workload visto nei capitoli precedenti. 
+\begin{itemize}
+    \item \textbf{SLO 1 - Latenza di Assegnazione Logistica:} Il 90\% degli ordini arrivati con priorità alta deve essere processato e assegnato ad un mezzo entro 1 minuto. Questo valore è giustificato dal ciclo di vita dell'orchestratore, che prevede un \texttt{time.sleep(30)} di base a cui si somma il tempo di latenza per l'inferenza dell'API.
+    \item \textbf{SLO 2 - Disponibilità del Data Layer:} Il broker MQTT e il database InfluxDB devono garantire il 99.9\% di uptime. Considerando che i droni inviano telemetria ogni 2 secondi, una perdita prolungata di dati (comunque mitigata dalle tacniche che abbiamo visto) renderebbe cieca l'IA, paralizzando l'health agent nella sua funzione di monitoraggio con possibili risvolti pericolosi.
+    \item \textbf{SLO 3 - Affidabilità e Risoluzione Agentica:} L'LLM deve concludere il proprio task di ragionamento ed emettere una \textit{tool call} valida nel 99\% dei casi senza innescare l'interruttore di sicurezza \texttt{MAX\_AGENT\_ITERATIONS}, evitando timeout o spreco di computazione e risorse economiche.
+\end{itemize}
+\subsection*{Stima del Costo di un'Ora di Downtime}
+Lavorando nel dominio della logistica critica, il costo stimato di un'ora di downtime del servizio è stimato a circa \textbf{15.000 €/ora}. Questa stima deriva da una media calcolata basandosi sui guadagni medi che il servizio raggiunge in un'ora di attività, portando a termine le consegne. Il dato però deriva anche da possibili penali contrattuali, e quindi dagli SLA violati.
+
+
+\section{Valutazione del Return on Agent (ROA) e Costi}
+\label{sec:roa}
+L'orchestrazione autonoma della flotta introduce un bilanciamento critico tra i costi operativi delle API (OPEX) e il risparmio di capitale hardware (CAPEX) ottenuto tramite logiche predittive.
+
+\subsection{Strategie di Ottimizzazione dei Costi Operativi (OPEX)}
+Il sistema limita l'impatto economico delle chiamate LLM attraverso tre strategie integrate:
+\begin{itemize}
+    \item \textbf{Triage Preventivo:} Il modulo \texttt{triage\_manager} analizza lo snapshot del sistema prima di invocare i modelli, attivando \texttt{LogisticAgent} ed \texttt{HealthAgent} solo se sussistono reali condizioni di sbilanciamento (es. ordini pendenti accoppiati a droni idle, o necessità di scaling/manutenzione). Questo approccio azzera i costi derivanti da cicli di no-op ridondanti.
+    \item \textbf{Ingegneria dei Prompt:} I prompt di sistema impongono restrizioni sintattiche che vietano la generazione di testo libero, preamboli o spiegazioni discorsive del ragionamento. L'output dei modelli è rigidamente confinato alle sole chiamate di funzione (tool calling), minimizzando drasticamente il consumo di token di completamento e azzerando le computazioni superflue.
+    \item \textbf{Monitoraggio dei Consumi:} Il sistema esegue un auditing sistematico dei token spesi (prompt, completamento e totale) al termine di ogni esecuzione, permettendo una precisa rendicontazione finanziaria del processo decisionale.
+\end{itemize}
+
+\subsection{Mitigazione del Rischio e Preservazione del Capitale (CAPEX)}
+Il ritorno sull'investimento dell'agente intelligente si concretizza nella mitigazione dei rischi d'impresa e nell'ottimizzazione infrastrutturale:
+\begin{itemize}
+    \item \textbf{Manutenzione Preventiva Dinamica:} \texttt{LogisticAgent} applica la regola algoritmica di escludere droni con usura superiore al $70\%$ dal trasporto di carichi pesanti ($>3$\,kg). Nel contesto fisico del simulatore, questa decisione previene l'esaurimento imprevisto della batteria in volo e la conseguente perdita catastrofica del vettore (crash).
+    \item \textbf{Elasticità Infrastrutturale Cloud:} L'\texttt{HealthAgent} modula dinamicamente le repliche del deployment \texttt{drone-simulator} su Kubernetes basandosi sulle fluttuazioni del carico di lavoro effettivo, riducendo i costi di over-provisioning dell'infrastruttura cloud.
+    \item \textbf{Operational Safety Cap:} Le policy di sicurezza impongono un limite massimo di 6 droni per lo scaling automatico. Qualsiasi espansione ulteriore viene intercettata e subordinata ad approvazione umana (\texttt{request\_human\_approval}), ponendo un vincolo rigido (budget cap) contro anomalie o loop di scaling incontrollati.
+    \item \textbf{Massimizzazione del Throughput Remunerativo:} La coda degli ordini viene ordinata preventivamente per priorità e valore economico. L'agente logistico alloca la capacità di carico residua partendo dai task a più alto rendimento, ottimizzando il fatturato per singola finestra operativa.
+\end{itemize}
+
+\label{sec:opex_budget}
+
+\subsection*{Proiezioni Economiche e Budget Compliance}
+Al fine di convalidare la sostenibilità finanziaria del software, è stata effettuata una stima comparativa dei costi su base mensile, ipotizzando una frequenza di esecuzione standard di 2.880 cicli giornalieri (un polling di verifica ogni 30 secondi).
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lrr}
+\hline
+\textbf{Voce di Costo} & \textbf{Scenario Gemini 2.5 Pro} & \textbf{Scenario Mistral Small} \\ \hline
+Infrastruttura Cloud (3 nodi Kubernetes) & 150,00 \$ / mese & 150,00 \$ / mese \\
+Token Modello Linguistico (AI) & $\sim$500,00 \$ / mese & $\sim$10,00 \$ / mese \\ \hline
+\textbf{OPEX Totale Mensile} & \textbf{$\sim$650,00 \$ / mese} & \textbf{160,00 \$ / mese} \\ \hline
+\end{tabular}
+\label{tab:costi_opex}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Costi Infrastrutturali Fissi:} Il mantenimento dell'ambiente containerizzato in alta affidabilità (comprensivo di 3 nodi worker per Kubernetes, database InfluxDB per la telemetria e broker MQTT per la messaggistica) genera un costo operativo fisso di circa \textbf{150 \$/mese}.
+    \item \textbf{Costi Variabili dell'Intelligenza Artificiale:} L'impatto della componente generativa è fortemente condizionato dall'architettura del modello scelto. L'adozione di \textit{Gemini 2.5 Pro} comporta un volume medio di 1.200 token per ciclo (ripartiti equamente tra input e output), traducendosi in una spesa di circa \textbf{500 \$/mese}. Al contrario, l'impiego di un modello specialistico più leggero come \textit{Mistral Small} riduce l'impronta a 800 token per ciclo; grazie a un'architettura asimmetrica focalizzata sull'input (90\% input, 10\% output), il costo computazionale si abbatte a meno di \textbf{10 \$/mese}.
+\end{itemize}
+Considerando lo scenario basato sul modello top-tier (\textit{Gemini 2.5 Pro}), l'OPEX complessivo del software — dato dalla somma dei costi infrastrutturali e dei token — si attesta su un valore massimo di circa \textbf{650 \$/mese}. Tale cifra rappresenta una spesa ampiamente sostenibile e prevedibile, garantendo la piena \textit{Budget Compliance} rispetto ai vincoli economici di progetto. L'adozione di politiche di caching, l'uso di \textit{Mistral Small} o la rimodulazione del ciclo di polling offrono ampi margini per un'ulteriore riduzione dei costi operativi.
+
+\section{Analisi dei Trade-Off}
+\label{sec:analisi_tradeoff}
+Bilanciamento analitico tra i costi di automazione e la reliability, confrontando l'efficienza dell'automazione pura rispetto alla sicurezza del paradigma HITL.

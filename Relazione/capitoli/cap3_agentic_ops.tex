@@ -1,0 +1,58 @@
+% !TeX root = ../main.tex
+
+\chapter{Agentic AI e Design MCP (Model Context Protocol)}
+\label{cap:agentic_operations_mcp}
+
+\section{Il Limite dell'Automazione Deterministica}
+\label{sec:limite_automazione}
+
+Normalmente l'assegnazione degli ordini ai vettori verrebbe gestita tramite un approccio deterministico basato su alberi decisionali (scripting \textit{if-else}). Sebbene questo metodo sia efficiente per carichi di lavoro lineari, si rivela inadeguato nel dominio complesso affrontato dal nostro sistema. 
+
+Nel nostro digital twin, ogni missione è influenzata da una combinazione di variabili diverse: la priorità dell'ordine, il peso del carico, la percentuale di batteria residua, il tasso di usura del mezzo. Scrivere regole rigide per coprire ogni caso possibile porterebbe a un codice fragile e difficilmente manutenibile. 
+Gli agenti superano questo limite sostituendo la rigidità deterministica con un ragionamento probabilistico. L'Agente valuta dinamicamente i trade-off operativi e ottimizza il matching Ordine-Drone in tempo reale, adattandosi a contesti imprevisti senza necessità di pre-programmazione esplicita.
+
+\section{Architettura MCP}
+\label{sec:architettura_mcp}
+Per garantire che l'IA operi all'interno di confini sicuri, il sistema implementa un'architettura basata sul \textit{Model Context Protocol} (MCP). L'MCP funge da strato tra i loop di ragionamento degli LLM (confinati in \texttt{logistic\_ai\_brain.py}) e l'infrastruttura fisica simulata su Kubernetes. 
+L'LLM non possiede credenziali dirette o permessi di root sui database; comunica esclusivamente tramite richieste HTTP al server MCP, il quale espone due categorie di \textit{Tools}:
+
+\begin{itemize}
+    \item \textbf{Observer Tools (Read-Only):} Strumenti sicuri utilizzati dall'agente per la fase di raccolta delle informazioni necessarie. Includono \texttt{get\_drones\_status} (interrogazione API Kubernetes), \texttt{get\_drones\_telemetry} e \texttt{get\_pending\_orders} (estrazione dati in time-window da InfluxDB).
+    \item \textbf{Remediation Tools (Write):} Strumenti attivi che modificano lo stato del sistema. Includono \texttt{send\_mqtt\_command} per l'assegnazione delle missioni e \texttt{scale\_drone\_deployment} per l'Auto-Scaling dei pod. Essendo potenzialmente pericolosi, la loro esecuzione all'interno del modulo \texttt{drone\_mcp\_layer.py} è subordinata a policy che vedremo successivamente
+\end{itemize}
+
+\section{Ruolo 1: The Health Agent}
+\label{sec:health_agent}
+L'\texttt{HealthAgent} si occupa della resilienza dell'infrastruttura, della diagnostica della flotta e del dimensionamento delle risorse fisiche. L'agente opera analizzando i flussi di telemetria e agisce come un supervisore automatizzato della salute del sistema, gestendo monitoraggio, triage dell'usura e auto-scaling.
+
+
+\subsection*{Compiti principali}
+l'agente analizza in modo proattivo il rapporto tra gli ordini pendenti e la capacità attuale della flotta. Se rileva un collo di bottiglia, decide a quante unità, e di conseguenza pod Kubernetes, scalare il cluster per mantenere inalterati gli SLO. In alcuni casi che vedremo successivamente richiede direttamente l'intervento umano.\\
+Inoltre, Il ciclo di ragionamento dell'agente include l'analisi logica per l'identificazione di guasti (es. esaurimento improvviso della batteria in volo o schianti). Se un drone si trova in stato di \texttt{MAINTENANCE} ma le sue coordinate spaziali differiscono da quelle dell'HUB centrale \texttt{[0.0, 0.0]}, l'\texttt{HealthAgent} deduce autonomamente che il mezzo è precipitato sul campo e innesca le procedure di recupero. 
+
+
+\section{Ruolo 2: The Logistic Agent}
+\label{sec:logistic_agent}
+Il \texttt{LogisticAgent} si occupa della logica di business del sistema, gestendo la coda degli ordini asincroni inviati dal client simulator e coordinando l'effettiva assegnazione delle missioni sui singoli mezzi.
+
+\subsection*{Compiti principali}
+L'agente logistico incrocia i dati degli ordini con lo stato telemetrico real-time fornito dai droni che si trovano in stato \texttt{IDLE}. L'assegnazione dell'ordine non avviene secondo criteri sequenziali standard (es. FIFO), ma attraverso una ponderazione del rischio:
+\begin{enumerate}
+    \item \textbf{Analisi dell'ordine:} Il peso del pacco (\texttt{weight\_kg}) influisce direttamente sulle performance del drone: un pacco pesante riduce la velocità di crociera e incrementa il consumo di batteria.
+    \item \textbf{Contesto Spaziale:} La distanza euclidea impone un calcolo preventivo dell'autonomia necessario al viaggio.
+    \item \textbf{Stato del Mezzo:} Il livello di batteria attuale e il grado di usura meccanica (\textit{wear}) accumulato.
+\end{enumerate}
+Se un ordine presenta priorità elevata (\textit{high priority}) ma un peso prossimo al limite massimo di 5.0 kg, l'agente eviterà tassativamente di assegnarlo a droni non in condizioni ottimali (es. $>80\%$) o con poca batteria, riducendo le probabilità di malfunzionamenti. Una volta cercata la coppia ottimale Ordine-Drone, l'agente lancia il comando MCP \texttt{send\_mqtt\_command} scatenando la partenza.
+
+\section{Orchestrazione Dinamica}
+\label{sec:logistic_ai_brain}
+
+Il coordinamento e l'attivazione degli agenti sono gestiti dall'orchestratore centrale (\texttt{logistic\_ai\_brain.py}). Per garantire la massima efficienza economica, (\textit{Budget Compliance}) di cui parleremo in seguito, l'orchestratore utilizza un'architettura reattiva, basata sul contesto.
+
+Si articola in tre meccanismi chiave implementati in \texttt{logistic\_ai\_brain.py}:
+
+\begin{enumerate}    
+    \item \textbf{Triage Manager e Context Injection:} Gli agenti non sprecano più interazioni inutili. È l'orchestratore che agisce da router (\texttt{triage\_manager}): analizza la fotografia del sistema e decide se serve l'intervento dell'Health Agent o del Logistic Agent. Una volta stabilito il target, l'orchestratore filtra i dati (fornendo alla logistica, ad esempio, \textit{solo} i droni \texttt{IDLE}) e li inietta direttamente nel prompt iniziale dell'agente (\textit{Context Injection}). Questo costringe l'LLM a passare immediatamente alla fase di invocazione dei tool di rimediazione.
+    
+    \item \textbf{Esecuzione Parallela Asincrona:} Qualora il \textit{Triage Manager} stabilisca che sia necessaria sia un'azione di manutenzione/scaling che un'assegnazione di ordini, i due agenti non vengono più eseguiti in modo sequenziale. L'orchestratore li istanzia e li avvia parallelamente su processi separati (\texttt{threading.Thread}), facendoli successivamente ricongiungere. Questo approccio asincrono dimezza la latenza del ciclo decisionale, permettendo al sistema di rispondere in modo molto più reattivo a picchi di traffico imprevisti.
+\end{enumerate}
