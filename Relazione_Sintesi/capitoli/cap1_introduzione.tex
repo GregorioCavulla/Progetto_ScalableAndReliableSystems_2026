@@ -1,0 +1,32 @@
+% !TeX root = ../main.tex
+
+\chapter{Introduzione e Definizione del Servizio}
+\label{cap:introduzione_definizione}
+
+\section{Dominio Operativo}
+\label{sec:dominio_operativo}
+
+Il progetto si colloca all'intersezione tra \textit{Transportation} e \textit{Industrial / IoT Monitoring} e implementa un'architettura logistica autonoma per una flotta di droni adibita alla consegna urbana di payload critici (forniture mediche, organi, componenti industriali ad alta priorità). In un servizio \textit{high-stakes} di questo tipo, efficienza e affidabilità sono requisiti fondamentali.
+
+Il sistema opera in un'area metropolitana di raggio 5\,km attorno a un HUB centrale in \texttt{[0.0, 0.0]}. Gli ordini hanno peso 0.5--5.0\,kg e priorità \textit{low}/\textit{normal}/\textit{high}. I droni sono modellati come agenti fisici con quattro stati operativi (\texttt{IDLE}, \texttt{IN\_DELIVERY}, \texttt{RETURNING}, \texttt{MAINTENANCE}): la velocità in consegna varia tra 50 e 80\,km/h in funzione del carico, mentre in rientro a vuoto raggiunge i 100\,km/h. Ogni missione accumula usura (0--100\%) e il superamento di soglie critiche richiede manutenzione preventiva per evitare schianti.
+
+L'elevata variabilità delle condizioni (es. pacco da 4.5\,kg \textit{high priority} con droni a bassa batteria o alta usura) rende inefficace l'automazione deterministica. Il sistema delega quindi il triage a un layer \textit{Agentic AI} che bilancia in tempo reale rischio operativo, urgenza e salute della flotta.
+
+\section{Stakeholder e Utenti Target}
+\label{sec:stakeholder_utenti}
+
+\textbf{Stakeholder.} (i) \textit{Operatori Human-in-the-Loop}, che validano o respingono via gateway le azioni ad alto impatto degli agenti; (ii) \textit{Ingegneri DevOps/SRE}, responsabili della salute di nodi/Pod Kubernetes, broker Mosquitto e database InfluxDB; (iii) \textit{Business Owner}, che monitorano il bilanciamento CAPEX/OPEX e il KPI \textit{Return on Agent} (ROA).
+
+\textbf{Utenti target.} (i) \textit{Entità mittenti} (hub medici, e-commerce critici, hub industriali) che immettono ordini in modo asincrono e richiedono il rispetto degli SLO; (ii) \textit{Destinatari finali} (laboratori, linee JIT) per i quali downtime e fallimenti catastrofici (schianto del drone in volo) non sono negoziabili.
+
+\section{Workload e Threat Model}
+\label{sec:workload_threat}
+
+L'architettura è \textit{event-driven} con carico ibrido:
+\begin{itemize}
+    \item \textbf{Telemetria IoT costante:} ogni Pod \texttt{drone\_simulator} pubblica un messaggio JSON su \texttt{telemetry/drones} ogni 2\,s; il \texttt{central\_server} aggiorna lo stato in RAM e persiste su InfluxDB.
+    \item \textbf{Eventi di business asincroni (spiky):} il \texttt{client\_simulator.py} immette ordini su \texttt{business/ordini/nuovi}, con picchi anomali negli scenari di stress.
+    \item \textbf{Polling agentico read-heavy:} l'orchestratore interroga InfluxDB (time-window di 5--60\,min) e l'API Kubernetes a ogni risveglio, richiedendo latenze minime per non violare gli SLO di reattività.
+\end{itemize}
+
+I principali scenari di guasto baseline sono: caduta del broker MQTT (mitigata da rischedulazione K8s + \textit{exponential backoff} di \texttt{paho-mqtt}), indisponibilità di InfluxDB (mitigata da \textit{graceful degradation} del server centrale), picchi di carico anomali (gestiti dallo scaling agentico) e allucinazioni/loop dell'LLM (contenuti dal layer MCP e dai contatori di iterazione, Capitolo~\ref{cap:safety_guardrails}).

@@ -1,0 +1,33 @@
+% !TeX root = ../main.tex
+
+\chapter{Operational Safety e Agent Guardrails}
+\label{cap:safety_guardrails}
+
+L'introduzione di agenti LLM espone il sistema a rischi (allucinazioni, latenze, comportamenti non deterministici): il progetto adotta più livelli di guardrail per garantire azioni verificabili, confinate e sicure.
+
+\section{Least Privilege e Protezione Anti-Loop}
+\label{sec:least_privilege}
+
+L'IA agisce da \emph{assistente operativo}, mai con controllo illimitato. Il server MCP è l'unico \textit{chokepoint} verso l'infrastruttura e applica:
+\begin{itemize}
+    \item \textbf{Accesso read-only alla telemetria:} solo \texttt{query\_api} pre-compilate in Python, senza facoltà di comporre query \textit{Flux}/\textit{SQL} arbitrarie (rischio injection annullato).
+    \item \textbf{Divieto di azioni distruttive:} nessun tool per \texttt{DROP} di bucket, \texttt{DELETE} di ordini storici o terminazione di processi core; il codice in \texttt{drone\_mcp\_layer.py} omette intenzionalmente queste implementazioni.
+\end{itemize}
+
+Per evitare loop di ragionamento infiniti, l'\texttt{HealthAgent} ha un contatore di iterazioni per turno (limite 3) e un controllo di formato sulla risposta: due output consecutivi non conformi terminano il processo. È inoltre presente un \textit{kill-switch} contro lo scollegamento del backend: se le chiamate al server MCP falliscono oltre una soglia, l'attività degli agenti viene congelata e ripresa automaticamente al ritorno online del backend, evitando di consumare token su contesti vuoti.
+
+\section{Idempotenza delle Azioni}
+\label{sec:idempotenza_azioni}
+
+Il meccanismo di scaling è l'esempio canonico di idempotenza: \texttt{scale\_drone\_deployment} invoca \texttt{patch\_namespaced\_deployment\_scale} passando il \emph{numero di repliche desiderate} (stato desiderato dichiarativo). Se l'LLM ripete il comando in loop, Kubernetes verifica che il Deployment ha già raggiunto la quota richiesta e ignora le chiamate successive. Una progettazione incrementale (aggiungere $N$ droni per chiamata) avrebbe invece saturato il cluster in caso di allucinazione.
+
+\section{Human-In-The-Loop ed Escalation}
+\label{sec:hitl_escalation}
+
+La costante \texttt{POLICY\_LIMITS} in \texttt{drone\_mcp\_layer.py} fissa a 6 il numero massimo di droni scalabili in autonomia (\texttt{max\_drones\_auto}):
+\begin{itemize}
+    \item $\le 6$: l'\texttt{HealthAgent} invoca direttamente \texttt{scale\_drone\_deployment}.
+    \item $> 6$: il layer MCP blocca il comando e l'agente è obbligato a invocare \texttt{request\_human\_approval}.
+\end{itemize}
+
+Le richieste sono gestite da un servizio Flask indipendente (\texttt{human\_approval\_manager.py}, porta 5002) che espone una dashboard agli operatori. Le richieste sono persistite su \texttt{pending\_approvals.jsonl} con \texttt{request\_id}, azione, payload e giustificazione in linguaggio naturale fornita dall'LLM. L'operatore può \textbf{Approve} (patch K8s con \texttt{force=True}) o \textbf{Deny} (richiesta marcata \texttt{rejected}, stato della flotta invariato al ciclo successivo).

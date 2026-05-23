@@ -30,7 +30,7 @@
 \contentsline {section}{\numberline {6.3}Esperimento 2: Network Resilience (MQTT Broker Crash)}{20}{section.6.3}%
 \contentsline {section}{\numberline {6.4}Esperimento 3: Load Spike e Scaling Agentico}{20}{section.6.4}%
 \contentsline {section}{\numberline {6.5}Riepilogo Metriche}{20}{section.6.5}%
-\contentsline {section}{\numberline {6.6}Lezioni Apprese}{20}{section.6.6}%
+\contentsline {section}{\numberline {6.6}Lezioni Apprese}{21}{section.6.6}%
 \contentsline {chapter}{\numberline {7}Analisi Economica: Costi, ROI e ROA (Return on Agent)}{22}{chapter.7}%
 \contentsline {section}{\numberline {7.1}Service Level Objectives (SLOs) e Costo del Downtime}{22}{section.7.1}%
 \contentsline {section}{\numberline {7.2}Valutazione del Return on Agent (ROA) e Costi}{23}{section.7.2}%

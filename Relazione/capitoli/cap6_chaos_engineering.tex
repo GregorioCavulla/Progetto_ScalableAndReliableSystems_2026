@@ -22,7 +22,7 @@ Ogni esperimento è strutturato secondo il ciclo classico del chaos engineering:
 
 \textbf{Procedura.} Scaling del Deployment \texttt{influxdb} a 0 repliche, attesa di 10\,s, ripristino a 1 replica e cronometraggio del tempo necessario affinché il pod torni in stato \texttt{Ready}.
 
-\textbf{Risultato.} \textbf{RTO misurato: 12{,}04 s}. Durante l'outage il \texttt{central\_server} ha continuato a servire la dashboard sfruttando lo stato in-memory; le sole scritture storiche sono state perse, in linea col pattern di dual-write neutralizzato da \texttt{try/except}.
+\textbf{Risultato.} \textbf{RTO misurato: 12{,}05 s} (run del 23/05/2026). Durante l'outage il \texttt{central\_server} ha continuato a servire la dashboard sfruttando lo stato in-memory; le sole scritture storiche sono state perse, in linea col pattern di dual-write neutralizzato da \texttt{try/except}.
 
 \section{Esperimento 2: Network Resilience (MQTT Broker Crash)}
 \label{sec:esperimento_2_mqtt}
@@ -30,15 +30,15 @@ Ogni esperimento è strutturato secondo il ciclo classico del chaos engineering:
 
 \textbf{Procedura.} Deletion del pod via \texttt{delete\_namespaced\_pod} e attesa del nuovo pod in stato \texttt{Running}.
 
-\textbf{Risultato.} \textbf{Downtime di scheduling K8s: 0{,}01 s} (rischedulazione immediata sul nodo). La riconnessione dei droni è gestita dal client MQTT senza logica custom; il broker non perde messaggi grazie alla natura at-most-once della telemetria (perdite tollerate, frequenza 2\,s).
+\textbf{Risultato.} \textbf{Downtime di scheduling K8s: 0{,}04 s} (rischedulazione immediata sul nodo). La riconnessione dei droni è gestita dal client MQTT senza logica custom; il broker non perde messaggi grazie alla natura at-most-once della telemetria (perdite tollerate, frequenza 2\,s).
 
 \section{Esperimento 3: Load Spike e Scaling Agentico}
 \label{sec:esperimento_3_load}
 \textbf{Ipotesi.} L'iniezione simultanea di 50 ordini deve essere rilevata dal \texttt{triage\_manager} e tradursi in una richiesta di scaling dell'\texttt{HealthAgent}; sotto la soglia di 6 droni lo scaling avviene in autonomia, oltre tale soglia parte l'escalation HITL (§\ref{sec:hitl_escalation}).
 
-\textbf{Procedura.} Lettura delle repliche correnti del Deployment \texttt{drone-simulator}, esecuzione di \texttt{client\_simulator.py --stress}, attesa di 60\,s, rilettura delle repliche.
+\textbf{Procedura.} Lettura delle repliche correnti del Deployment \texttt{drone-simulator}, esecuzione di \texttt{client\_simulator.py --stress} (durata effettiva $\approx$56\,s), attesa ulteriore di 30\,s per consentire al \texttt{LogisticAIBrain} di completare un ciclo di triage, rilettura delle repliche.
 
-\textbf{Risultato osservato.} Repliche \textbf{prima = 3}, \textbf{dopo = 3}. Nella run registrata l'agente non ha completato lo scaling entro la finestra di 60\,s: l'ispezione dei log mostra che il ciclo di triage (\texttt{time.sleep(30)}) e l'inferenza LLM hanno consumato gran parte del budget temporale. Il test evidenzia un limite reale dell'architettura, discusso in §\ref{sec:lezioni_chaos}: la latenza di reazione agentica non è adatta a load spike a gradino con orizzonte $<60$\,s, mentre rimane efficace su trend di accumulo più lenti.
+\textbf{Risultato osservato.} Repliche \textbf{prima = 3}, \textbf{dopo = 6}. L'orchestratore agentico ha rilevato il backlog tramite query InfluxDB, invocato il tool MCP \texttt{scale\_drone\_fleet} e raddoppiato la flotta entro $\approx$86\,s end-to-end dalla prima iniezione. Il test conferma l'efficacia dello scaling agentico per shock di carico controllati su orizzonti dell'ordine del minuto; per shock sub-minuto resta aperta la traccia (§\ref{sec:lezioni_chaos}) di un HPA Kubernetes nativo come \emph{fast-path} complementare.
 
 \section{Riepilogo Metriche}
 \label{sec:riepilogo_chaos}
@@ -48,14 +48,14 @@ Ogni esperimento è strutturato secondo il ciclo classico del chaos engineering:
 \begin{tabular}{lll}
 \hline
 \textbf{Esperimento} & \textbf{Metrica} & \textbf{Valore} \\ \hline
-InfluxDB outage      & RTO              & 12{,}04 s \\
-MQTT broker crash    & Downtime K8s     & 0{,}01 s \\
-Load spike (50 ord.) & $\Delta$ repliche & 3 $\rightarrow$ 3 (timeout) \\ \hline
+InfluxDB outage      & RTO              & 12{,}05 s \\
+MQTT broker crash    & Downtime K8s     & 0{,}04 s \\
+Load spike (50 ord.) & $\Delta$ repliche & 3 $\rightarrow$ 6 ($\approx$86\,s) \\ \hline
 \end{tabular}
-\caption{Risultati misurati eseguendo \texttt{chaos\_test\_suite.py} (run del 22/05/2026).}
+\caption{Risultati misurati eseguendo \texttt{chaos\_test\_suite.py} (run del 23/05/2026).}
 \label{tab:chaos_results}
 \end{table}
 
 \section{Lezioni Apprese}
 \label{sec:lezioni_chaos}
-Gli esperimenti confermano la robustezza dei livelli infrastrutturali (Kubernetes + paho-mqtt + dual-write) ma evidenziano due limiti dello strato agentico: (i) la latenza del ciclo decisionale, dominata da \texttt{time.sleep(30)} e dall'inferenza LLM, è inadatta a picchi istantanei; (ii) la suite non misura ancora la \textit{loss rate} di telemetria durante l'outage di InfluxDB né l'effettiva latenza end-to-end di assegnazione ordini sotto stress. Tra gli sviluppi futuri (Cap.~\ref{cap:conclusioni}) rientrano l'affiancamento di un HPA Kubernetes nativo come "fast-path" per i load spike, lasciando all'agente le decisioni strategiche su orizzonti più lunghi.
+Gli esperimenti confermano la robustezza dei livelli infrastrutturali (Kubernetes + paho-mqtt + dual-write) e validano lo strato agentico come meccanismo di scaling efficace su orizzonti di $\approx$1\,min. Restano due limiti aperti: (i) la latenza del ciclo decisionale ($\approx$30\,s dominati da \texttt{time.sleep(30)} e inferenza LLM) è ancora elevata per spike sub-minuto, dove un HPA Kubernetes nativo offrirebbe un \emph{fast-path} complementare; (ii) la suite non misura ancora la \textit{loss rate} di telemetria durante l'outage di InfluxDB né l'effettiva latenza end-to-end di assegnazione ordini sotto stress. La convivenza HPA + agente (HPA come reattore rapido, agente come pianificatore strategico) rientra tra gli sviluppi futuri (Cap.~\ref{cap:conclusioni}).
