@@ -4,12 +4,39 @@ set -e
 # Risali alla root del progetto: questo script vive in ops/ ma usa configs/, Dockerfile, ecc. dal parent.
 cd "$(dirname "$0")/.."
 
+# ================== AUTO-START DOCKER DAEMON (devcontainer DinD fix) ==================
+# Se dockerd non risponde, applica il fix iptables-nft e lo avvia in background.
+ensure_docker_running() {
+    if docker info > /dev/null 2>&1; then
+        return 0
+    fi
+    echo "-> Docker daemon non attivo. Avvio in corso (fix iptables-nft + dockerd)..."
+    sudo update-alternatives --set iptables /usr/sbin/iptables-nft >/dev/null 2>&1 || true
+    sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-nft >/dev/null 2>&1 || true
+    sudo pkill dockerd 2>/dev/null || true
+    sudo pkill containerd 2>/dev/null || true
+    sleep 1
+    sudo bash -c 'find /run /var/run -iname "docker*.pid" -delete 2>/dev/null; find /run /var/run -iname "container*.pid" -delete 2>/dev/null; nohup dockerd > /tmp/dockerd.log 2>&1 &'
+    for i in $(seq 1 20); do
+        sleep 1
+        if docker info > /dev/null 2>&1; then
+            echo "-> Docker daemon pronto."
+            return 0
+        fi
+    done
+    echo "ERRORE: impossibile avviare il Docker daemon. Controlla /tmp/dockerd.log"
+    tail -20 /tmp/dockerd.log 2>/dev/null || true
+    exit 1
+}
+ensure_docker_running
+# ======================================================================================
+
 CLUSTER_NAME="beta-drone-cluster"
 IMAGE_NAME="progetto-final-image:latest"
 
 echo "========================================="
 echo "   Inizializzazione Cluster Kubernetes   "
-echo "         (Progetto_effAgent)             "
+echo "            (Progetto_SRS)               "
 echo "========================================="
 
 echo "1. Creazione cluster KIND '$CLUSTER_NAME'..."
@@ -25,6 +52,7 @@ echo " -> Caricamento immagine su KIND..."
 kind load docker-image "$IMAGE_NAME" --name "$CLUSTER_NAME"
 
 echo "3. Applico Secrets e infrastruttura di base (InfluxDB, Mosquitto)..."
+kind export kubeconfig --name "$CLUSTER_NAME"
 kubectl apply -f configs/secrets.yaml
 kubectl apply -f configs/influxdb.yaml
 kubectl apply -f configs/mosquitto.yaml
