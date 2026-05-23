@@ -213,6 +213,7 @@ class DroneMCP:
         (vedi human_approval_manager.py), senza ri-passare da questo metodo.
         """
         # No-op se siamo già al numero di repliche richiesto: evita richieste ripetute di approvazione.
+        # Scale-down vietato all'agente: la riduzione è gestita esclusivamente dall'operatore umano via dashboard.
         try:
             current = self.k8s_apps.read_namespaced_deployment_scale(
                 name="drone-simulator", namespace="default"
@@ -222,6 +223,16 @@ class DroneMCP:
                     "allowed": True,
                     "status": "noop",
                     "message": f"Infrastruttura già a {current} droni: nessuna azione necessaria."
+                }
+            if int(replicas) < int(current):
+                return {
+                    "allowed": False,
+                    "status": "rejected",
+                    "reason": (
+                        f"Scale-down vietato all'agente: richieste {replicas} repliche "
+                        f"contro le {current} attuali. La riduzione è gestita manualmente. "
+                        f"Ricorda: 'replicas' è il TOTALE assoluto, non un delta."
+                    )
                 }
         except Exception:
             pass
@@ -253,17 +264,28 @@ class DroneMCP:
         if payload is None:
             payload = {}
 
-        #Blocca richiesta di scaling al numero di repliche già raggiunto
+        #Blocca richiesta di scaling al numero di repliche già raggiunto o di scale-down (gestito solo manualmente)
         if action_type == "scale_drone_deployment" and isinstance(payload, dict) and "replicas" in payload:
             try:
                 current = self.k8s_apps.read_namespaced_deployment_scale(
                     name="drone-simulator", namespace="default"
                 ).spec.replicas
-                if int(payload["replicas"]) == int(current):
+                requested = int(payload["replicas"])
+                if requested == int(current):
                     return {
                         "allowed": False,
                         "status": "noop",
                         "message": f"Infrastruttura già a {current} droni: approvazione non necessaria."
+                    }
+                if requested < int(current):
+                    return {
+                        "allowed": False,
+                        "status": "rejected",
+                        "reason": (
+                            f"Scale-down non richiedibile all'umano via agente "
+                            f"({requested} < {current}). La riduzione è un'azione manuale. "
+                            f"Ricorda: 'replicas' è il TOTALE assoluto, non un delta."
+                        )
                     }
             except Exception:
                 pass

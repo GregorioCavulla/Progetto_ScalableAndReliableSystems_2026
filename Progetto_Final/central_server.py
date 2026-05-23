@@ -81,7 +81,7 @@ DASHBOARD_HTML = """
 </head>
 <body>
     <header>
-        <h1>Bombing Drone Fleet Dashboard</h1>
+        <h1>Drone Fleet Dashboard</h1>
         <p class="subtitle">Monitoraggio in tempo reale di ordini, droni e consegne.</p>
     </header>
     <div class="container">
