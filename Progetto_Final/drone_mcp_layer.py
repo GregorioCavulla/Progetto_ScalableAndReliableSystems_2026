@@ -348,4 +348,5 @@ class DroneMCP:
         result = {"pending": pending}
         if request_id:
             result["request_id"] = request_id
+        
         return result

@@ -424,6 +424,5 @@ def run():
         client.loop_stop()
         client.disconnect()
 
-
 if __name__ == '__main__':
     run()

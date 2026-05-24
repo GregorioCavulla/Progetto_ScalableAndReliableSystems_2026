@@ -2,20 +2,41 @@ venv
 venv_env.sh
 **/usb/
 token
-Progetto_Test_ghp
+/Progetto_Test_ghp/
 
 # Sensitive environment and credentials
 .env
+.env.*
+!.env.example
 *.env
 *.api_key
 *.key
 *.pem
+*.p12
+*.pfx
+*.jks
+*.kubeconfig
+*.token
+*.tokens
+token
+tokens/
 secrets.json
+secrets.yaml
+secrets.yml
 credentials.ini
+credentials.json
+credentials.yaml
+credentials.yml
+id_rsa
+id_ed25519
+**/configs/secrets.yaml
+**/configs/secrets.yml
+**/token
 
 # Application logs and runtime files
 logs/
 *.log
+*.pid
 
 # Editor and system files
 .vscode/

@@ -192,4 +192,4 @@ class HealthAgent:
                 print(f" Errore critico in Health Agent: {e}")
                 return "Errore di esecuzione."
 
-        return " Limite iterazioni raggiunto."
+        return " Limite iterazioni raggiunto." 
