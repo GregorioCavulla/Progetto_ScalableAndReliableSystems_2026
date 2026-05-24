@@ -1,0 +1,40 @@
+% !TeX root = ../main.tex
+
+\chapter{Reliability e Scalabilità}
+\label{cap:reliability_scalability}
+
+L'architettura sfrutta i comportamenti \emph{out-of-the-box} delle librerie di base, arricchiti da pattern per confinare gli errori e rendere il sistema reattivo al traffico.
+
+\section{Resilienza di Rete}
+\label{sec:resilienza_rete}
+
+In fase di avvio i droni eseguono un retry custom con \texttt{time.sleep} di 5\,s qualora il broker non sia ancora schedulato. A regime, la resilienza è demandata alla libreria \texttt{paho-mqtt} e al suo \texttt{loop\_start()}: in caso di caduta di Mosquitto il client avvia autonomamente \textit{exponential backoff} per la riconnessione e ripristina la sottoscrizione ai topic \texttt{comandi/\#} senza logica custom.
+
+\section{Graceful Degradation del Server Centrale}
+\label{sec:graceful_degradation}
+
+Per evitare che un downtime di InfluxDB blocchi la dashboard live, l'handler \texttt{on\_message} di \texttt{central\_server.py} adotta un pattern di \textit{dual-write} con eccezione neutralizzata:
+
+\begin{lstlisting}[language=Python, caption={Pattern di Graceful Degradation.}, label={lst:graceful_degradation}]
+def on_message(client, userdata, msg):
+    state["drones"][drone_id] = parsing(msg.payload)  # 1. in-memory
+    try:
+        write_api.write(bucket, org, record)          # 2. persistenza
+    except InfluxDBError:
+        log_warning("InfluxDB non raggiungibile.")    # degradazione
+\end{lstlisting}
+
+Se InfluxDB è offline, vengono persi solo i log storici, mentre il tracciamento real-time e la dashboard restano operativi, isolando il guasto al solo storage layer.
+
+\section{Scalabilità Dinamica e Safety Limits}
+\label{sec:scalabilita_dinamica}
+
+L'architettura supera lo scaling passivo basato su CPU/RAM delegando la valutazione agli agenti. Il tool MCP \texttt{scale\_drone\_deployment} invoca \texttt{patch\_namespaced\_deployment\_scale} sul Deployment \texttt{drone-simulator}, variando in tempo reale le repliche in base alla coda. Lo scaling è subordinato al guardrail \texttt{POLICY\_LIMITS}: oltre soglia l'azione è bloccata ed escalata al \textit{Human Approval Manager} (Capitolo~\ref{cap:safety_guardrails}), evitando consumi cloud incontrollati per allucinazioni del modello.
+
+\begin{lstlisting}[language=Python, caption={Guardrail di sicurezza applicato alle richieste di scaling dell'agente.}, label={lst:safety_limits_scale}]
+if requested_replicas > POLICY_LIMITS:
+    trigger_human_escalation(requested_replicas)   # escalation HITL
+else:
+    k8s_client.patch_namespaced_deployment_scale(  # esecuzione patch
+        name="drone-simulator", ...)
+\end{lstlisting}

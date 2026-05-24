@@ -1,0 +1,47 @@
+% !TeX root = ../main.tex
+
+\chapter{Chaos Engineering e Test di Fallimento}
+\label{cap:chaos_engineering}
+
+La suite \texttt{ops/chaos\_test\_suite.py} inietta guasti controllati sui componenti critici (database, broker, capacità di flotta) per misurare la reazione del sistema in termini di RTO e capacità di auto-rimediazione. L'obiettivo non è dimostrare l'assenza di guasti, ma misurare empiricamente la \textit{reazione} dell'architettura discussa nel Capitolo~\ref{cap:reliability_scalability}.
+
+\section{Metodologia}
+\label{sec:metodologia_chaos}
+
+Ogni esperimento segue il ciclo classico del chaos engineering:
+\begin{enumerate}
+    \item \textbf{Ipotesi:} comportamento atteso e SLO da rispettare.
+    \item \textbf{Blast radius:} guasto confinato a un singolo Deployment in namespace \texttt{default}; il control-plane non viene mai toccato.
+    \item \textbf{Iniezione:} via API Kubernetes (\texttt{patch\_namespaced\_deployment\_scale}, \texttt{delete\_namespaced\_pod}) o tramite generatore di carico (\texttt{client\_simulator.py --stress}).
+    \item \textbf{Osservazione:} metriche su \texttt{chaos\_test\_results.log} (timestamp, RTO, repliche prima/dopo).
+    \item \textbf{Abort condition:} timeout massimo di 60\,s per il ripristino, oltre il quale il test è considerato fallito.
+\end{enumerate}
+
+\section{Esperimenti e Risultati}
+\label{sec:esperimenti_chaos}
+
+\textbf{(1) Primary Database Outage.} Scaling di \texttt{influxdb} a 0 repliche, attesa 10\,s, ripristino a 1; cronometraggio del ritorno a \texttt{Ready}. \textit{Risultato:} RTO = 12{,}05\,s. Il \texttt{central\_server} ha continuato a servire la dashboard dallo stato in-memory; solo le scritture storiche sono andate perse, coerentemente col pattern di dual-write (§\ref{sec:graceful_degradation}).
+
+\textbf{(2) MQTT Broker Crash.} Deletion del Pod \texttt{mosquitto} via \texttt{delete\_namespaced\_pod}, attesa del nuovo Pod \texttt{Running}. \textit{Risultato:} downtime di scheduling K8s = 0{,}04\,s. La riconnessione dei droni è gestita nativamente da \texttt{paho-mqtt} senza logica custom; la telemetria \textit{at-most-once} (2\,s) tollera le perdite.
+
+\textbf{(3) Load Spike e Scaling Agentico.} Iniezione di 50 ordini con \texttt{client\_simulator.py --stress} (durata $\approx$56\,s), attesa ulteriore di 30\,s per il ciclo decisionale e rilettura delle repliche. \textit{Risultato:} repliche prima = 3, dopo = 6. L'orchestratore agentico ha rilevato lo spike, invocato il tool MCP di scaling e raddoppiato la flotta entro la finestra osservativa ($\approx$86\,s end-to-end), confermando l'efficacia dello scaling agentico per shock di carico controllati.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Esperimento} & \textbf{Metrica} & \textbf{Valore} \\
+\midrule
+InfluxDB outage      & RTO          & 12{,}05\,s \\
+MQTT broker crash    & Downtime K8s & 0{,}04\,s \\
+Load spike (50 ord.) & $\Delta$ repliche & 3 $\rightarrow$ 6 ($\approx$86\,s) \\
+\bottomrule
+\end{tabular}
+\caption{Run \texttt{chaos\_test\_suite.py} del 23/05/2026.}
+\label{tab:chaos_results}
+\end{table}
+
+\section{Lezioni Apprese}
+\label{sec:lezioni_chaos}
+
+Gli esperimenti confermano la robustezza dei livelli infrastrutturali (Kubernetes + \texttt{paho-mqtt} + dual-write) e validano lo scaling agentico su orizzonti di $\approx$1\,min. Restano due limiti: (i) la latenza del ciclo decisionale ($\approx$30\,s) è ancora elevata per spike sub-minuto, dove un HPA nativo offrirebbe un \emph{fast-path} complementare; (ii) la suite non misura ancora la \textit{loss rate} di telemetria durante l'outage di InfluxDB né la latenza end-to-end sotto stress. Tali estensioni sono discusse nel Capitolo~\ref{cap:conclusioni}.

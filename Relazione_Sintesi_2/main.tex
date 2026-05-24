@@ -1,18 +1,22 @@
-\documentclass[12pt,a4paper]{report}
+\documentclass[11pt,a4paper]{report}
 
-% Pacchetti base per la lingua e la formattazione
 \usepackage[utf8]{inputenc}
 \usepackage[italian]{babel}
 \usepackage{geometry}
-\geometry{a4paper, margin=2.5cm}
+\geometry{a4paper, margin=2.4cm}
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{textcomp}
 
-% Inclusione del file di configurazione personalizzato
 \input{config.tex}
 
-% Titolo del progetto
+% Layout intermedio tra Sintesi (10 p.) e Review (27 p.) -> target 15-17 p.
+\titleformat{\chapter}[hang]{\normalfont\Large\bfseries}{\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{-4pt}{10pt}
+\setlength{\parskip}{3pt}
+
 \title{\textbf{Sistema di Logistica Droni Resiliente con AI Agentica}}
 \author{Lorenzo Amorosa \\ Edoardo Buttazzi \\ Gregorio Cavulla}
 \date{}
@@ -20,11 +24,9 @@
 \begin{document}
 
 \maketitle
-
 \tableofcontents
 \newpage
 
-% --- INCLUSIONE DEI CAPITOLI MODULARI ---
 \input{capitoli/cap1_introduzione.tex}
 \input{capitoli/cap2_architettura.tex}
 \input{capitoli/cap3_agentic_ops.tex}
