@@ -1,0 +1,39 @@
+% !TeX root = ../main.tex
+
+\chapter{Conclusioni}
+\label{cap:conclusioni}
+
+Il progetto ha dimostrato la fattibilità tecnica di un'architettura logistica resiliente in cui il livello di automazione viene affidato a un layer di \textit{Agentic AI} mediato da un server MCP, con l'orchestratore (\texttt{logistic\_ai\_brain.py}) che funge da \textit{triage manager} e \textit{context router} per due agenti specializzati: l'\texttt{HealthAgent} sul piano infrastrutturale e il \texttt{LogisticAgent} sul piano di business. La separazione tra LLM, layer MCP e infrastruttura Kubernetes ha permesso di soddisfare contemporaneamente i requisiti di osservabilità, sicurezza e scalabilità discussi nei capitoli precedenti.
+
+\section{Sintesi dei Risultati}
+\label{sec:sintesi_risultati}
+
+I principali risultati raggiunti possono essere riassunti su tre piani complementari:
+
+\begin{itemize}
+    \item \textbf{Reliability infrastrutturale:} i meccanismi di \textit{graceful degradation} del \texttt{central\_server}, di \textit{exponential backoff} di \texttt{paho-mqtt} e di rischedulazione nativa di Kubernetes hanno garantito, negli esperimenti di chaos engineering (Capitolo~\ref{cap:chaos_engineering}), un RTO contenuto (circa 12\,s sull'outage di InfluxDB) e una rischedulazione pressoché immediata del broker MQTT, senza interruzione del monitoraggio real-time.
+    \item \textbf{Safety agentica:} l'adozione del principio del \textit{Least Privilege}, dei contatori di iterazione, del \textit{kill-switch} sul backend e del paradigma HITL ha confinato l'autonomia dell'LLM entro confini verificabili. La soglia architetturale dei 6 droni per lo scaling automatico ha permesso di mantenere il controllo umano sulle azioni a maggiore impatto economico.
+    \item \textbf{Sostenibilità economica:} l'analisi di costo (Capitolo~\ref{cap:analisi_economica}) ha quantificato la \emph{forbice} tra modelli LLM differenti e ha evidenziato come il sistema, grazie al \textit{triage manager} e all'idempotenza dei tool, mantenga l'OPEX in un intervallo prevedibile (160--650\,\$/mese a seconda del modello), abilitando una scelta consapevole tra capacità di ragionamento e costo per ciclo.
+\end{itemize}
+
+\section{Limitazioni Attuali}
+\label{sec:limitazioni}
+
+L'analisi sperimentale ha messo in luce alcune limitazioni dell'approccio attuale:
+
+\begin{itemize}
+    \item \textbf{Copertura dei test di caos:} la suite attuale non misura ancora la \textit{loss rate} di telemetria durante l'outage di InfluxDB né la latenza end-to-end di assegnazione degli ordini sotto stress; i risultati sono quindi conservativi e parziali.
+    \item \textbf{Stima economica:} i valori di OPEX (Tabella~\ref{tab:costi_opex}) e il costo orario di downtime di 15.000\,\texteuro\ sono basati su ipotesi di carico costante e su assunzioni di mercato; in produzione richiederebbero una validazione su dati reali della flotta.
+\end{itemize}
+
+\section{Sviluppi Futuri}
+\label{sec:sviluppi_futuri}
+
+A partire dalle limitazioni identificate, il progetto si presta a diverse linee evolutive coerenti con l'impianto architetturale esistente:
+
+\begin{enumerate}
+    \item \textbf{Routing dinamico tra modelli LLM:} sfruttare la forbice di costo evidenziata nel Capitolo~\ref{cap:analisi_economica} implementando un meccanismo che selezioni dinamicamente il modello (es. \textit{Mistral Small} per cicli ordinari, \textit{Gemini 2.5 Pro} per anomalie complesse), ottimizzando ulteriormente il \textit{Return on Agent}.
+    \item \textbf{Validazione su dispositivi fisici:} estendere il digital twin con un'integrazione verso droni reali o simulatori ad alta fedeltà, per verificare la trasferibilità del modello fisico (velocità, batteria, usura) oltre l'ambiente simulato.
+\end{enumerate}
+
+In definitiva, il sistema realizzato dimostra come l'introduzione di un layer agentico mediato da MCP, accompagnato da guardrail di sicurezza e da una rigorosa strategia di osservabilità, possa elevare il livello di automazione di un'infrastruttura logistica critica senza sacrificare la prevedibilità operativa e il controllo umano sulle decisioni ad alto impatto.

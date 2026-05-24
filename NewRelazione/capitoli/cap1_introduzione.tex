@@ -1,0 +1,82 @@
+% !TeX root = ../main.tex
+
+\chapter{Introduzione e Definizione del Servizio}
+\label{cap:introduzione_definizione}
+
+% ---------------------------------------------------------
+\section{Dominio Operativo}
+\label{sec:dominio_operativo}
+
+Il progetto si colloca all'intersezione tra due domini critici identificati nelle specifiche di corso: \textit{Transportation} e \textit{Industrial / IoT Monitoring}. Nello specifico, il sistema implementa un'architettura logistica autonoma per la gestione di una flotta di droni adibita alla consegna urbana di \textit{payload} critici (forniture mediche d'emergenza, componentistica industriale ad alta priorità). In un servizio di tipo \textit{high-stakes}, efficienza e affidabilità sono i requisiti fondamentali per la buona riuscita delle missioni.
+
+\subsection*{Il Contesto Fisico e Simulato}
+
+Il sistema opera all'interno di un'area metropolitana modellata metricamente, con un raggio d'azione di 5000\,m (5\,km) attorno a un HUB logistico centrale posizionato alle coordinate base \texttt{[0.0, 0.0]}. L'ambiente operativo è altamente dinamico e soggetto a vincoli fisici realistici che l'Intelligenza Artificiale deve interpretare e gestire:
+
+\begin{itemize}
+    \item \textbf{Gestione del Payload:} gli ordini generati presentano un peso variabile (da 0.5\,kg a 5.0\,kg) e tre livelli di priorità (\textit{low}, \textit{normal}, \textit{high}).
+    \item \textbf{Fisica del Volo:} i droni non sono entità ideali, ma agenti fisici il cui stato viene modellato in base allo sforzo. Il consumo della batteria e la velocità di crociera in consegna (variabile tra 50 e 80\,km/h) sono calcolati dinamicamente in proporzione diretta al peso del carico trasportato; in fase di rientro senza carico il simulatore può raggiungere i 100\,km/h. Ogni drone può trovarsi in uno dei quattro stati operativi: \texttt{IDLE}, \texttt{IN\_DELIVERY}, \texttt{RETURNING}, \texttt{MAINTENANCE}.
+    \item \textbf{Degrado Meccanico (Wear):} ogni missione accumula una percentuale di usura (da 0\% a 100\%) basata sulla distanza percorsa. Il superamento di soglie critiche richiede interventi di manutenzione preventiva per evitare danni critici.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Stakeholder e Utenti Target}
+\label{sec:stakeholder_utenti}
+
+Gli attori del sistema si dividono in due macro-categorie: gli \textit{stakeholder} (focalizzati su gestione, sicurezza e sostenibilità) e gli \textit{utenti target} (beneficiari diretti del servizio logistico).
+
+\subsection*{Stakeholder}
+
+\begin{enumerate}
+    \item \textbf{Operatori di Flotta (Human-in-the-Loop):} 
+    Responsabili della sicurezza operativa. Tramite la dashboard web monitorano il sistema e agiscono da \textit{gateway} decisionale, validando o respingendo le azioni ad alto impatto proposte dall'IA (es. scaling K8s oltre i limiti consentiti).
+
+    \item \textbf{SRE Team / DevOps:}
+    Garantiscono l'alta disponibilità (\textit{High Availability}) dell'infrastruttura. Monitorano i pod Kubernetes, il broker Mosquitto e InfluxDB, intervenendo su guasti hardware o di rete non risolvibili in autonomia dagli agenti.
+
+    \item \textbf{Business Owner e Controller Finanziari:}
+    Supervisionano l'efficienza economica bilanciando CAPEX e OPEX. Controllano il consumo di token LLM (\textit{budget ceiling}) e misurano il \textit{Return on Agent} (ROA), ossia il risparmio generato dalla manutenzione predittiva dell'IA rispetto al costo delle chiamate API.
+\end{enumerate}
+
+\subsection*{Utenti Target (Clienti del Servizio)}
+
+\begin{itemize}
+    \item \textbf{Entità Mittenti (Hub Medici, E-Commerce, Industrie):}
+    Generano le richieste asincrone di consegna. Esigono il rigido rispetto dei \textit{Service Level Objectives} (SLO), richiedendo la rapida evasione degli ordini \textit{high priority} anche durante estremi picchi di carico (\textit{load spikes}).
+
+    \item \textbf{Destinatari Finali (Laboratori, Linee JIT):}
+    Beneficiari ultimi del payload. In contesti critici o \textit{Just-In-Time} (JIT), dipendono dalla totale resilienza del sistema, imponendo requisiti stringenti come downtime nullo ed eliminazione dei fallimenti logistici (es. schianti per batteria scarica).
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Analisi del Workload}
+\label{sec:analisi_workload}
+
+L'architettura è di tipo \textit{event-driven} ed è sottoposta a un carico di lavoro ibrido, caratterizzato dalla coesistenza di flussi di dati continui (streaming IoT) ed eventi asincroni variabili (richieste di business e cicli di ragionamento AI). Per dimensionare correttamente i meccanismi di reliability e scalabilità, il workload è stato scomposto in tre componenti principali.
+
+\subsection*{1. Telemetria IoT ad alta frequenza (Constant Load)}
+Il carico di base dell'infrastruttura è generato dalla flotta. Ogni Pod \texttt{drone\_simulator} calcola costantemente il proprio movimento e il decadimento della batteria, trasmettendo un payload JSON contenente coordinate spaziali, stato operativo e usura. Ciascun drone pubblica un aggiornamento sul broker MQTT (topic \texttt{telemetry/drones}) con una frequenza di un messaggio ogni 2 secondi. Questo genera un throughput in ingresso costante, che il \texttt{central\_server} deve prima elaborare in RAM per mantenere aggiornata la dashboard real-time e successivamente persistere su InfluxDB strutturandolo come serie temporale.
+
+\subsection*{2. Eventi di Business asincroni (Spiky Load)}
+Il secondo vettore è rappresentato dalle richieste di consegna generate dai nodi cliente (\texttt{client\_simulator.py}). Il traffico è composto da ordini generati casualmente e pubblicati sul topic \texttt{business/ordini/nuovi}. A questo si sovrappongono i picchi anomali generati negli scenari di stress testing, pensati per forzare l'intervento reattivo del sistema.
+
+\subsection*{3. Carico di Inferenza e Polling Agentico (Read-Heavy Spikes)}
+Una peculiarità delle architetture che sfruttano AI Agentica è il carico indiretto generato dall'Intelligenza Artificiale stessa sull'infrastruttura sottostante. L'orchestratore centrale (\texttt{logistic\_ai\_brain.py}) risveglia periodicamente gli agenti e ogni risveglio scatena diverse operazioni in lettura (\textit{polling}):
+\begin{itemize}
+    \item interrogazione intensiva di InfluxDB per estrarre la finestra temporale (\textit{time-window}) degli ultimi 5--60 minuti di telemetria e ordini;
+    \item chiamate alle API di Kubernetes per ottenere lo stato dei Pod attivi in tempo reale.
+\end{itemize}
+Questo workload \emph{a raffiche} richiede che il database e le API di Kubernetes rispondano con latenze minime, poiché un ritardo nella fase di \textit{information gathering} prolungherebbe i tempi di inferenza del Large Language Model, violando gli SLO di reattività del sistema.
+
+% ---------------------------------------------------------
+\section{Threat Model e Scenari di Guasto}
+\label{sec:threat_model}
+
+A completamento dell'analisi del workload, sono stati identificati gli scenari di guasto considerati come baseline architetturale del progetto. Questi scenari guidano le scelte di reliability discusse nel Capitolo~\ref{cap:reliability_scalability} e vengono validati empiricamente nel Capitolo~\ref{cap:chaos_engineering}.
+
+\begin{itemize}
+    \item \textbf{Caduta del broker MQTT (\texttt{mosquitto}):} interruzione del canale di scambio eventi tra droni, server centrale e simulatori client. È mitigata dalla rischedulazione nativa di Kubernetes e dal meccanismo di \textit{exponential backoff} del client \texttt{paho-mqtt}.
+    \item \textbf{Indisponibilità del database primario (\texttt{influxdb}):} perdita temporanea dello storage delle serie temporali. È mitigata dal pattern di \textit{Graceful Degradation} del \texttt{central\_server}, che preserva lo stato in-memory e neutralizza l'eccezione di scrittura per non bloccare le code real-time.
+    \item \textbf{Picchi anomali di carico (\textit{load spike}):} immissione massiva di ordini in pochi secondi. È gestita dal layer agentico tramite scaling dinamico del Deployment \texttt{drone-simulator}, vincolato dalle policy di sicurezza descritte nel Capitolo~\ref{cap:safety_guardrails}.
+    \item \textbf{Allucinazioni e loop dell'LLM:} comportamenti non deterministici degli agenti che potrebbero generare cicli infiniti di tool calling o azioni distruttive. Sono contenuti dal layer MCP (read-only su telemetria, assenza di tool distruttivi) e dai contatori di iterazione descritti nel Capitolo~\ref{cap:safety_guardrails}.
+\end{itemize}

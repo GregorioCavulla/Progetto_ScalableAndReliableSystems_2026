@@ -1,6 +1,0 @@
-paho-mqtt
-influxdb-client
-kubernetes
-openai
-requests
-flask
